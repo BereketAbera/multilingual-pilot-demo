@@ -23,6 +23,7 @@ import struct
 import sys
 import zlib
 from pathlib import Path
+from typing import NamedTuple
 from xml.etree import ElementTree
 from xml.sax.saxutils import escape
 
@@ -200,10 +201,17 @@ STROKE = 2.6
 GAP = 1.4  # clear space kept on each side of the fifth stroke where it crosses the others
 
 
-def _mark_strokes(uprights: str, across: str, behind: str) -> str:
+def _mark_strokes(uprights: str, across: str, behind: str, smallest: bool = False) -> str:
     (x1, y1), (x2, y2) = ACROSS
     four = "".join(f"M{x} {UPRIGHT_TOP}V{UPRIGHT_BOTTOM}" for x in UPRIGHTS)
     fifth = f"M{x1} {y1}L{x2} {y2}"
+    if smallest:
+        # At 16 pixels the clear edge is under a pixel and only blurs the stroke, so it is left out
+        # and the fifth stroke is half a pixel heavier.
+        return (
+            f'<g fill="none" stroke-linecap="round" stroke-width="{STROKE}"><path d="{four}" stroke="{uprights}"/>'
+            f'<path d="{fifth}" stroke="{across}" stroke-width="{STROKE + 1:g}"/></g>'
+        )
     return (
         f'<g fill="none" stroke-linecap="round" stroke-width="{STROKE}"><path d="{four}" stroke="{uprights}"/>'
         # Drawn first in the background colour and a little wider, so the fifth stroke reads as lying across the others.
@@ -219,12 +227,12 @@ def mark_svg() -> str:
     return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="2 4 28 24">{_mark_strokes(INK, ACTION, WHITE)}</svg>\n'
 
 
-def favicon_svg() -> str:
-    """For the browser tab: white strokes on a blue tile."""
+def favicon_svg(smallest: bool = False) -> str:
+    """For the browser tab: white strokes on a blue tile. `smallest` is the drawing for the 16 pixel icon only."""
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'
         f'<rect width="32" height="32" rx="6" fill="{ACTION}"/>'
-        f"{_mark_strokes(WHITE, WHITE, ACTION)}</svg>\n"
+        f"{_mark_strokes(WHITE, WHITE, ACTION, smallest)}</svg>\n"
     )
 
 
@@ -324,11 +332,20 @@ def _description(words: dict[str, str]) -> str:
     )
 
 
+class Sizes(NamedTuple):
+    """The type of one drawing: body text, its line height, and the monospaced lines."""
+
+    body: float
+    leading: float
+    mono: float
+
+
 class Canvas:
     """Collects SVG elements. `faces` decides how a font is named: for a browser or for Inkscape."""
 
-    def __init__(self, faces: dict[str, tuple[str, str]]) -> None:
+    def __init__(self, faces: dict[str, tuple[str, str]], sizes: Sizes) -> None:
         self.faces = faces
+        self.sizes = sizes
         self.parts: list[str] = []
         self.boxes: list[str] = []
         self.lines: list[str] = []
@@ -345,7 +362,7 @@ class Canvas:
             attributes += f' font-family="{family}"'
         if weight != base_weight:
             attributes += f' font-weight="{weight}"'
-        if size != BODY:
+        if size != self.sizes.body:
             attributes += f' font-size="{size:g}"'
         if fill != INK:
             attributes += f' fill="{fill}"'
@@ -384,10 +401,18 @@ class Canvas:
         self.parts.extend(self.texts)
         self.boxes, self.lines, self.heads, self.texts, self.captions = [], [], [], [], []
 
-    def svg(self, width: float, height: float, ident: str, title: str, description: str | None) -> str:
-        """A drawing that stands alone carries its description and a white ground; the inline ones point at the page's copy."""
+    def svg(self, width: float, height: float, ident: str, title: str | None, description: str | None) -> str:
+        """A drawing that stands alone carries its description and a white ground; the inline ones point at the page's copy.
+
+        Without a title the drawing is one part of a figure the page names as a whole, and is hidden from a screen reader.
+        """
         self.parts.extend(self.texts)
         family, weight = self.faces[BASE_FACE]
+        if title is None:
+            return (
+                f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width:g} {height:g}" width="{width:g}" height="{height:g}" '
+                f'font-size="{self.sizes.body:g}" fill="{INK}" aria-hidden="true">{"".join(self.parts)}</svg>\n'
+            )
         if description:
             described_by = f"{ident}-desc"
             inside = f'<desc id="{described_by}">{escape(description)}</desc><rect width="{width:g}" height="{height:g}" fill="{WHITE}"/>'
@@ -397,7 +422,7 @@ class Canvas:
         face = f'font-family="{family}" font-weight="{weight}" ' if description else ""
         return (
             f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width:g} {height:g}" width="{width:g}" height="{height:g}" '
-            f'{face}font-size="{BODY:g}" fill="{INK}" '
+            f'{face}font-size="{self.sizes.body:g}" fill="{INK}" '
             f'role="img" aria-labelledby="{ident}-title" aria-describedby="{described_by}">'
             f'<title id="{ident}-title">{escape(title)}</title>{inside}{"".join(self.parts)}</svg>\n'
         )
@@ -411,16 +436,19 @@ TONES = {
 BASE_FACE = "sans-400"
 # The Handoff page holds the long description once, in a hidden paragraph with this id, for both drawings.
 DESCRIPTION_ID = "backend-messages-description"
-BODY, BODY_LEADING = 13.0, 18.0
-MONO = 12.0
 PAD_X, PAD_Y = 12.0, 11.0
 
+# The four-column drawing is shown at its own size or a little smaller, so its text is set close to the
+# page's 15 pixels. A single path is drawn narrow and is shown at its own size or larger.
+WIDE = Sizes(body=14.0, leading=19.0, mono=13.0)
+SINGLE = Sizes(body=13.0, leading=18.0, mono=12.0)
 
-def _cell_lines(cell: Cell, room: float) -> list[tuple[str, str, float]]:
+
+def _cell_lines(cell: Cell, room: float, sizes: Sizes) -> list[tuple[str, str, float]]:
     """A cell's text as measured lines: (face, text, size)."""
     lines: list[tuple[str, str, float]] = []
     for face, text in cell:
-        size = MONO if face.startswith("mono") else BODY
+        size = sizes.mono if face.startswith("mono") else sizes.body
         if face.startswith("mono"):
             if font(face).width(text, size) > room + 0.5:
                 raise ValueError(f"{text!r} does not fit in {room}px")
@@ -431,13 +459,13 @@ def _cell_lines(cell: Cell, room: float) -> list[tuple[str, str, float]]:
 
 
 def _draw_cell(canvas: Canvas, x: float, y: float, lines: list[tuple[str, str, float]]) -> None:
-    baseline = y + PAD_Y + 12.5
+    baseline = y + PAD_Y + canvas.sizes.body - 0.5
     for index, (face, text, size) in enumerate(lines):
-        canvas.text(x + PAD_X, baseline + index * BODY_LEADING, text, face, size, INK)
+        canvas.text(x + PAD_X, baseline + index * canvas.sizes.leading, text, face, size, INK)
 
 
-def _cell_height(lines: list[tuple[str, str, float]]) -> float:
-    return PAD_Y * 2 + len(lines) * BODY_LEADING - 1
+def _cell_height(lines: list[tuple[str, str, float]], sizes: Sizes) -> float:
+    return PAD_Y * 2 + len(lines) * sizes.leading - 1
 
 
 def diagram_wide(faces: dict[str, tuple[str, str]], ident: str, standalone: bool) -> str:
@@ -453,7 +481,7 @@ def diagram_wide(faces: dict[str, tuple[str, str]], ident: str, standalone: bool
     for column in widths[:-1]:
         lefts.append(lefts[-1] + column + arrow_room)
 
-    canvas = Canvas(faces)
+    canvas = Canvas(faces, WIDE)
     y = margin + 13.0
     for left, heading in zip(lefts, COLUMNS):
         canvas.text(left, y, heading, "sans-600", 13, MUTED)
@@ -462,12 +490,12 @@ def diagram_wide(faces: dict[str, tuple[str, str]], ident: str, standalone: bool
     for path in _paths(words):
         tone = TONES[path["tone"]]
         y += 34.0
-        label_width = font("sans-600").width(path["label"], 13.5)
-        canvas.text(margin, y, path["label"], "sans-600", 13.5, tone["ink"])
-        canvas.text(margin + label_width + 10, y, path["note"], "sans-400", 12.5, MUTED)
+        label_width = font("sans-600").width(path["label"], 14)
+        canvas.text(margin, y, path["label"], "sans-600", 14, tone["ink"])
+        canvas.text(margin + label_width + 10, y, path["note"], "sans-400", 13, MUTED)
         y += 10.0
-        cells = [_cell_lines(cell, column - 2 * PAD_X) for cell, column in zip(path["cells"], widths)]
-        height = max(_cell_height(lines) for lines in cells)
+        cells = [_cell_lines(cell, column - 2 * PAD_X, WIDE) for cell, column in zip(path["cells"], widths)]
+        height = max(_cell_height(lines, WIDE) for lines in cells)
         for index, (left, column, lines) in enumerate(zip(lefts, widths, cells)):
             canvas.box(left, y, column, height)
             _draw_cell(canvas, left, y, lines)
@@ -478,34 +506,33 @@ def diagram_wide(faces: dict[str, tuple[str, str]], ident: str, standalone: bool
     return canvas.svg(width, y + margin, ident, TITLE, _description(words) if standalone else None)
 
 
-def diagram_narrow(faces: dict[str, tuple[str, str]], ident: str) -> str:
-    """The same three paths for a phone: each path reads top to bottom."""
-    words = _load_words()
-    width = 320.0
-    canvas = Canvas(faces)
+SINGLE_WIDTH = 224.0  # the longest code fits on one line; three fit side by side in the Handoff page's panel
+
+
+def _single_cells(path: dict) -> list[list[tuple[str, str, float]]]:
+    return [_cell_lines(cell, SINGLE_WIDTH - 2 * PAD_X, SINGLE) for cell in path["cells"]]
+
+
+def diagram_path(faces: dict[str, tuple[str, str]], path: dict, heights: list[float]) -> str:
+    """One path, top to bottom. The page writes the path's name above it and names the three as one figure.
+
+    `heights` is the height of each of the four boxes, the same for all three paths, so that side by
+    side the boxes line up in rows.
+    """
+    width = SINGLE_WIDTH
+    tone = TONES[path["tone"]]
+    canvas = Canvas(faces, SINGLE)
     y = 0.0
-    for number, path in enumerate(_paths(words)):
-        tone = TONES[path["tone"]]
-        y += 14.0 if number == 0 else 30.0
-        for line in font("sans-600").wrap(path["label"], 13.5, width):
-            canvas.text(0, y, line, "sans-600", 13.5, tone["ink"])
-            y += 18.0
-        for line in font("sans-400").wrap(path["note"], 12.5, width):
-            canvas.text(0, y - 1, line, "sans-400", 12.5, MUTED)
-            y += 17.0
-        y -= 8.0
-        for index, (heading, cell) in enumerate(zip(COLUMNS, path["cells"])):
-            if index:
-                canvas.arrow(22, y + 4, 22, y + 18)
-                y += 22.0
-            lines = _cell_lines(cell, width - 2 * PAD_X)
-            height = _cell_height(lines) + BODY_LEADING
-            canvas.box(0, y, width, height)
-            canvas.caption(PAD_X, y + PAD_Y + 12.5, heading)
-            _draw_cell(canvas, 0, y + BODY_LEADING, lines)
-            y += height
-        canvas.close_path(tone["ink"], tone["fill"], tone["dashed"])
-    return canvas.svg(width, y, ident, TITLE, None)
+    for index, (heading, lines, height) in enumerate(zip(COLUMNS, _single_cells(path), heights)):
+        if index:
+            canvas.arrow(22, y + 4, 22, y + 18)
+            y += 22.0
+        canvas.box(0, y, width, height)
+        canvas.caption(PAD_X, y + PAD_Y + 12.5, heading)
+        _draw_cell(canvas, 0, y + SINGLE.leading, lines)
+        y += height
+    canvas.close_path(tone["ink"], tone["fill"], tone["dashed"])
+    return canvas.svg(width, y, "", None, None)
 
 
 # --------------------------------------------------------------------------------------
@@ -524,13 +551,29 @@ def command_svg() -> None:
     write(ROOT / "src/assets/brand/mark.svg", mark_svg())
     # Sources that Inkscape turns into the published files (design/build.sh).
     write(BUILD / "favicon.src.svg", favicon_svg())
+    write(BUILD / "favicon-16.src.svg", favicon_svg(smallest=True))
     write(BUILD / "touch-icon.src.svg", touch_icon_svg())
     write(BUILD / "backend-messages.src.svg", diagram_wide(INKSCAPE_FACE, "backend-messages", standalone=True))
     # Drawn inline on the Handoff page with the page's own fonts, so the text stays text. The page
     # shows one of the two and holds their shared description once.
     write(ROOT / "src/assets/diagrams/backend-messages-wide.svg", diagram_wide(WEB_FACE, "backend-messages-wide", standalone=False))
-    write(ROOT / "src/assets/diagrams/backend-messages-narrow.svg", diagram_narrow(WEB_FACE, "backend-messages-narrow"))
-    write(ROOT / "src/assets/diagrams/backend-messages.txt", _description(_load_words()) + "\n")
+    words = _load_words()
+    names = []
+    paths = _paths(words)
+    # Each box is as tall as the tallest of the three at that step, plus a line for its heading.
+    heights = [
+        max(_cell_height(_single_cells(path)[step], SINGLE) for path in paths) + SINGLE.leading
+        for step in range(len(COLUMNS))
+    ]
+    for number, path in enumerate(paths, start=1):
+        write(ROOT / f"src/assets/diagrams/backend-messages-path-{number}.svg", diagram_path(WEB_FACE, path, heights))
+        names.append({"label": path["label"], "note": path["note"], "fallback": path["tone"] == "tool"})
+    # What the page itself writes: the figure's name, and each path's name above its drawing.
+    write(
+        ROOT / "src/assets/diagrams/backend-messages.json",
+        json.dumps({"title": TITLE, "paths": names}, ensure_ascii=False, indent=2) + "\n",
+    )
+    write(ROOT / "src/assets/diagrams/backend-messages.txt", _description(words) + "\n")
 
 
 def _shorter_numbers(data: str) -> str:

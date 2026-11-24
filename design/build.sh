@@ -19,7 +19,9 @@ python3 design/make_assets.py svg
 python3 design/make_assets.py tidy "$BUILD/favicon.outlined.svg" public/favicon.svg
 
 # 3. The icon files browsers and phones ask for by name.
-for size in 16 32 48; do
+#    The 16 pixel one has its own drawing: no clear edge around the fifth stroke, which is too thin to show there.
+"$INKSCAPE" "$BUILD/favicon-16.src.svg" --export-type=png --export-width=16 --export-filename="$BUILD/icon-16.png"
+for size in 32 48; do
   "$INKSCAPE" public/favicon.svg --export-type=png --export-width="$size" --export-filename="$BUILD/icon-$size.png"
 done
 python3 design/make_assets.py ico public/favicon.ico "$BUILD/icon-16.png" "$BUILD/icon-32.png" "$BUILD/icon-48.png"
@@ -34,4 +36,4 @@ FONTCONFIG_FILE="$PWD/$BUILD/fonts/fonts.conf" "$INKSCAPE" "$BUILD/backend-messa
   --export-filename=docs/backend-messages.png
 
 ls -l public/favicon.svg public/favicon.ico public/apple-touch-icon.png src/assets/brand/mark.svg \
-  src/assets/diagrams/backend-messages-wide.svg src/assets/diagrams/backend-messages-narrow.svg docs/backend-messages.png
+  src/assets/diagrams/backend-messages-wide.svg src/assets/diagrams/backend-messages-path-*.svg docs/backend-messages.png

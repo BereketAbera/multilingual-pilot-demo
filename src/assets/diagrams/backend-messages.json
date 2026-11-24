@@ -1,0 +1,20 @@
+{
+  "title": "Where a backend message goes: three paths from the API’s answer to what the user sees",
+  "paths": [
+    {
+      "label": "1. A code the client has text for",
+      "note": "the normal case",
+      "fallback": false
+    },
+    {
+      "label": "2. A code the client has no text for, or a missing value",
+      "note": "fallback; one code is left without text on purpose, to show it",
+      "fallback": true
+    },
+    {
+      "label": "3. No code at all",
+      "note": "fallback; the stand-in API never does this, so only the screen tests cover it",
+      "fallback": true
+    }
+  ]
+}
