@@ -1,9 +1,10 @@
 import { ClipboardList, Menu, PackageSearch, SquarePen, X } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
-import { Link, NavLink, Outlet } from 'react-router';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { Msg, useI18n, useReview } from '../i18n';
 import { usePlant } from '../lib/plant';
 import { APP_NAME } from '../lib/usePageTitle';
+import { ErrorBoundary } from './ErrorBoundary';
 import { LanguageSelector } from './LanguageSelector';
 import { PseudoBanner, SampleFooter, SampleNav, UnenabledNavItem } from './sample/SampleChrome';
 
@@ -42,33 +43,65 @@ function PlantInfo({ className = '' }: { className?: string }) {
   );
 }
 
+/**
+ * Review mode: underline the English that stands in for a missing translation. The number is
+ * how many messages that is in the current language; with none, there is nothing to mark and
+ * the switch is off.
+ */
 function ReviewToggle({ className = '' }: { className?: string }) {
+  const i18n = useI18n();
   const { markFallbacks, setMarkFallbacks } = useReview();
+  const count = i18n.fallbackCount;
+  const none = count === 0;
+  const summary = i18n.t('common:header.fallbackCount', { count });
   return (
-    <label className={`flex min-h-11 cursor-pointer items-center gap-2 text-sm font-medium text-tool ${className}`}>
+    <label
+      title={summary}
+      className={`flex min-h-11 items-center gap-2 text-sm font-medium ${none ? 'text-muted' : 'cursor-pointer text-tool'} ${className}`}
+    >
       <input
         type="checkbox"
         data-testid="mark-fallbacks"
-        checked={markFallbacks}
+        disabled={none}
+        checked={markFallbacks && !none}
         onChange={(event) => setMarkFallbacks(event.target.checked)}
         className="size-4 accent-tool"
       />
       <Msg id="common:header.markFallbacks" />
+      <span
+        aria-hidden="true"
+        data-testid="fallback-count"
+        className={`rounded-full border px-2 py-0.5 text-xs tabular-nums ${none ? 'border-line bg-page text-muted' : 'border-tool bg-tool text-white'}`}
+      >
+        {i18n.number(count)}
+      </span>
+      <span className="sr-only">{summary}</span>
     </label>
   );
 }
 
 export function Shell() {
   const { t, locale } = useI18n();
+  const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = () => setMenuOpen(false);
   const iconClass = 'size-5 shrink-0';
+
+  // The phone menu closes on Escape, like any other disclosure.
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
 
   return (
     <div className="flex min-h-screen flex-col">
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-10 focus:rounded-md focus:bg-white focus:px-3 focus:py-2"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-30 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:shadow-md"
       >
         <Msg id="common:header.skip" />
       </a>
@@ -121,7 +154,9 @@ export function Shell() {
           </nav>
         </div>
         <main id="main" tabIndex={-1} className="min-w-0 flex-1 px-4 py-5 outline-none md:px-6 md:py-6">
-          <Outlet />
+          <ErrorBoundary resetKey={location.pathname}>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
       <SampleFooter />

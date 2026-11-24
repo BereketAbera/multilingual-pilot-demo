@@ -9,7 +9,7 @@ import { Chip, type Tone } from './ui';
 const ORDER_STATUS: Record<OrderStatus, { key: MessageKey; tone: Tone; Icon: typeof Check }> = {
   planned: { key: 'common:orderStatus.planned', tone: 'neutral', Icon: CalendarClock },
   in_progress: { key: 'common:orderStatus.in_progress', tone: 'info', Icon: CirclePlay },
-  completed: { key: 'common:orderStatus.completed', tone: 'neutral', Icon: Check },
+  completed: { key: 'common:orderStatus.completed', tone: 'ok', Icon: Check },
   on_hold: { key: 'common:orderStatus.on_hold', tone: 'hold', Icon: CirclePause },
 };
 

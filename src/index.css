@@ -68,6 +68,21 @@
     position: relative;
     overflow-x: auto;
   }
+  /* The box sits inside a clipped panel, so its focus ring is drawn inwards. */
+  .scroll-x:focus-visible {
+    outline-offset: -2px;
+  }
+  /* Shown over the right edge of a scrolling box while there are more columns that way. */
+  .scroll-fade {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 3rem;
+    pointer-events: none;
+    background: linear-gradient(to left, #fff 10%, rgb(255 255 255 / 0));
+    box-shadow: inset -1px 0 0 var(--color-line);
+  }
   .control {
     min-height: 2.75rem;
     width: 100%;
