@@ -257,6 +257,16 @@ describe('answers before any rule runs', () => {
     expect((await get('/api/nothing')).status).toBe(404);
   });
 
+  it('answers a lot address with broken percent-encoding with 400, not a crash', async () => {
+    const response = await get('/api/lots/%E0%A4%A');
+    expect(response.status).toBe(400);
+    expect(response.headers.get('content-type')).toContain('application/problem+json');
+    const problem = (await response.json()) as ProblemDetails;
+    expect(problem).toMatchObject({ status: 400, title: 'Bad Request', instance: '/api/lots/%E0%A4%A' });
+    // A well-formed escape still reaches the lookup: this one is a lot that does not exist.
+    expect((await get('/api/lots/CF%2D00%2D0000')).status).toBe(404);
+  });
+
   it('refuses a body that is not sent as JSON', async () => {
     for (const contentType of ['text/plain', 'text/xml']) {
       const response = await handleApi(

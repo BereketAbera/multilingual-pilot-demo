@@ -302,6 +302,15 @@ async function recordOutput(request: Request, culture: Culture, now: Date, insta
   return json(receipt, 201, culture);
 }
 
+/** One part of an address with its percent-encoding undone, or null when the encoding is broken. */
+function decodePathPart(part: string): string | null {
+  try {
+    return decodeURIComponent(part);
+  } catch {
+    return null;
+  }
+}
+
 const ROUTES: ReadonlyArray<{ path: RegExp; allow: string }> = [
   { path: /^\/api\/plant$/, allow: 'GET' },
   { path: /^\/api\/orders$/, allow: 'GET' },
@@ -333,7 +342,11 @@ export async function handleApi(request: Request): Promise<Response> {
   }
   const lotMatch = /^\/api\/lots\/([^/]+)$/.exec(path);
   if (method === 'GET' && lotMatch?.[1]) {
-    const code = decodeURIComponent(lotMatch[1]);
+    const code = decodePathPart(lotMatch[1]);
+    // A cut-off escape such as %E0%A4%A is the caller's mistake, so it gets a 400 and not a crash.
+    if (code === null) {
+      return plainProblem(400, 'Bad Request', 'The address is not valid: a percent-encoded character is incomplete.', path, culture);
+    }
     const lot = findLot(now, code);
     if (!lot) {
       return problem(
