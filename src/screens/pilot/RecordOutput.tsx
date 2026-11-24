@@ -27,7 +27,8 @@ type FieldName = (typeof FIELDS)[number];
 type FormValues = Record<FieldName, string>;
 
 // The same limits the API enforces. The API is the authority; checking here saves a round
-// trip and means the line that repeats a number never sits above a refusal from the server.
+// trip, and the line that repeats a value ("Will be recorded as ...") is shown only for a
+// value these rules accept, so it never promises a record the form then refuses.
 const NOTES_MAX = 280;
 const QUANTITY_RANGE = { min: 0.1, max: 20000 };
 const TEMPERATURE_RANGE = { min: 0, max: 150 };
@@ -372,6 +373,9 @@ function OutputForm({ orders, today, units, timeZone }: { orders: Order[]; today
   const productionDate = completeDate(values.productionDate);
   const bestBeforeDate = completeDate(values.bestBeforeDate);
   const issueCount = Object.keys(issues).length;
+  // What submitting right now would find. Nothing from it is shown as an error before the user
+  // submits; it only decides whether a value is repeated back as "will be recorded".
+  const refused = validate(values, i18n, today, units).issues;
   const notesLeft = NOTES_MAX - values.notes.length;
   const saved = outcome.kind === 'saved';
 
@@ -488,7 +492,7 @@ function OutputForm({ orders, today, units, timeZone }: { orders: Order[]; today
               suffix={i18n.unit(units.mass)}
               issue={issues.quantity}
               hint={
-                issues.quantity ? undefined : quantity !== null && quantity > 0 ? (
+                issues.quantity ? undefined : quantity !== null && !refused.quantity ? (
                   <span data-testid="reads-quantity">
                     <Msg id="output:reads" values={{ value: exact(quantity, units.mass, i18n) }} />
                   </span>
@@ -514,7 +518,7 @@ function OutputForm({ orders, today, units, timeZone }: { orders: Order[]; today
               label="output:field.productionDate"
               issue={issues.productionDate}
               hint={
-                productionDate && !issues.productionDate ? (
+                productionDate && !issues.productionDate && !refused.productionDate ? (
                   <span data-testid="reads-production-date">
                     <Msg id="output:reads" values={{ value: i18n.date(productionDate) }} />
                   </span>
@@ -530,7 +534,7 @@ function OutputForm({ orders, today, units, timeZone }: { orders: Order[]; today
               label="output:field.bestBefore"
               issue={issues.bestBeforeDate}
               hint={
-                bestBeforeDate && !issues.bestBeforeDate ? (
+                bestBeforeDate && !issues.bestBeforeDate && !refused.bestBeforeDate ? (
                   <span data-testid="reads-best-before">
                     <Msg id="output:reads" values={{ value: i18n.date(bestBeforeDate) }} />
                   </span>
@@ -550,7 +554,7 @@ function OutputForm({ orders, today, units, timeZone }: { orders: Order[]; today
             narrow
             issue={issues.temperature}
             hint={
-              issues.temperature ? undefined : temperature !== null ? (
+              issues.temperature ? undefined : temperature !== null && !refused.temperature ? (
                 <span data-testid="reads-temperature">
                   <Msg id="output:reads" values={{ value: exact(temperature, units.temperature, i18n) }} />
                 </span>

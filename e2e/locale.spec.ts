@@ -12,7 +12,6 @@ interface Expected {
   exactTyped: string;
   exactEcho: string;
   tooSmallTyped: string;
-  tooSmallEcho: string;
   overPlanned: string[];
   typedQuantity: string;
   typedTemperature: string;
@@ -32,7 +31,6 @@ const EXPECTED: Record<Language, Expected> = {
     exactTyped: '1.25',
     exactEcho: 'Will be recorded as 1.25 kg',
     tooSmallTyped: '0.05',
-    tooSmallEcho: 'Will be recorded as 0.05 kg',
     overPlanned: ['1,750.5 kg', '10%', '1,500 kg'],
     typedQuantity: '1,250.5',
     typedTemperature: '88.5',
@@ -50,7 +48,6 @@ const EXPECTED: Record<Language, Expected> = {
     exactTyped: '1.25',
     exactEcho: 'Se registrará como 1.25 kg',
     tooSmallTyped: '0.05',
-    tooSmallEcho: 'Se registrará como 0.05 kg',
     overPlanned: ['1,750.5 kg', '10%', '1,500 kg'],
     typedQuantity: '1,250.5',
     typedTemperature: '88.5',
@@ -68,7 +65,6 @@ const EXPECTED: Record<Language, Expected> = {
     exactTyped: '1,25',
     exactEcho: 'Será registrado como 1,25 kg',
     tooSmallTyped: '0,05',
-    tooSmallEcho: 'Será registrado como 0,05 kg',
     overPlanned: ['1.750,5 kg', '10%', '1.500 kg'],
     typedQuantity: '1.250,5',
     typedTemperature: '88,5',
@@ -168,12 +164,14 @@ for (const code of LANGUAGES) {
       await expect(page.getByTestId('server-exchange')).toContainText('"quantity": 1.25');
     });
 
-    test('a quantity under the API’s minimum is refused in the browser, and no longer repeated', async ({ page }) => {
+    test('a quantity under the API’s minimum is never repeated as “will be recorded”, and is refused in the browser', async ({ page }) => {
       await page.goto('/record-output');
       await chooseLanguage(page, code);
       await fillForm(page, 'PO-26-1186', expected);
+      await expect(page.getByTestId('reads-quantity')).toBeVisible();
       await page.locator('input[name="quantity"]').fill(expected.tooSmallTyped);
-      expect(plain(await page.getByTestId('reads-quantity').textContent())).toBe(expected.tooSmallEcho);
+      // The form would refuse this value, so the line under the field does not promise to record it.
+      await expect(page.getByTestId('reads-quantity')).toHaveCount(0);
       let posted = false;
       page.on('request', (request) => {
         if (request.method() === 'POST') posted = true;
