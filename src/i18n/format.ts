@@ -31,7 +31,19 @@ export function formatDate(isoDate: string | Date, locale: string): string {
   return dateFormat(locale, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' }).format(toDate(isoDate));
 }
 
-/** A moment in time, shown in the plant's time zone. */
+/**
+ * A plain date in a list where the year is obvious: "Nov 24". The year comes back as soon
+ * as it differs from the reference date's, so a row from last December is never ambiguous.
+ */
+export function formatDateInYear(isoDate: string, referenceIsoDate: string | undefined, locale: string): string {
+  if (!referenceIsoDate || isoDate.slice(0, 4) !== referenceIsoDate.slice(0, 4)) return formatDate(isoDate, locale);
+  return dateFormat(locale, { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(toDate(isoDate));
+}
+
+/**
+ * A moment in time, shown in the plant's time zone and labelled with it ("2:05 PM CST"),
+ * so a reader in another zone does not take it for their own clock.
+ */
 export function formatDateTime(instant: string | Date, locale: string, timeZone?: string): string {
   return dateFormat(locale, {
     year: 'numeric',
@@ -39,8 +51,22 @@ export function formatDateTime(instant: string | Date, locale: string, timeZone?
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
-    ...(timeZone ? { timeZone } : {}),
+    ...(timeZone ? { timeZone, timeZoneName: 'short' } : {}),
   }).format(toDate(instant));
+}
+
+export type DatePart = 'day' | 'month' | 'year';
+
+/** The order a language writes a date in: month, day, year in US English; day, month, year in Spanish and Portuguese. */
+export function datePartOrder(locale: string): DatePart[] {
+  return dateFormat(locale, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })
+    .formatToParts(new Date(Date.UTC(2026, 10, 24)))
+    .flatMap((part) => (part.type === 'day' || part.type === 'month' || part.type === 'year' ? [part.type] : []));
+}
+
+/** A month as a word, for a date field: 11 is "November", "noviembre", "novembro". */
+export function monthName(month: number, locale: string): string {
+  return dateFormat(locale, { month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(2026, month - 1, 1)));
 }
 
 export function formatNumber(value: number, locale: string, maximumFractionDigits = 1): string {
@@ -52,9 +78,23 @@ export function formatPercent(ratio: number, locale: string, minimumFractionDigi
   return numberFormat(locale, { style: 'percent', minimumFractionDigits, maximumFractionDigits: 1 }).format(ratio);
 }
 
-/** A number with its unit. The unit comes from the data (a plant setting), never from the language. */
+/**
+ * A number with its unit. The unit comes from the data (a plant setting), never from the language.
+ * One decimal by default, for columns; a form that repeats what was typed asks for more.
+ * The space before the unit is a no-break space, so "85 °C" never splits across two lines.
+ */
 export function formatQuantity(value: number, unit: Unit, locale: string, maximumFractionDigits = 1): string {
-  return numberFormat(locale, { style: 'unit', unit, unitDisplay: 'short', maximumFractionDigits }).format(value);
+  return numberFormat(locale, { style: 'unit', unit, unitDisplay: 'short', maximumFractionDigits })
+    .format(value)
+    .replace(/ /g, '\u00A0');
+}
+
+/** How many decimal places a number carries: 12.345 has 3. Used to repeat a typed number without rounding it. */
+export function fractionDigits(value: number): number {
+  const text = String(value);
+  if (!Number.isFinite(value) || text.includes('e')) return 0;
+  const point = text.indexOf('.');
+  return point < 0 ? 0 : text.length - point - 1;
 }
 
 /** The unit's symbol on its own, for a field suffix: "kg", "°C". */

@@ -1,13 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { localeConfig, type LocaleCode } from '../../src/i18n/config';
 import {
+  datePartOrder,
   formatDate,
+  formatDateInYear,
   formatDateTime,
   formatNumber,
   formatPercent,
   formatQuantity,
   formatRelativeDays,
   formatRelativeTime,
+  fractionDigits,
+  monthName,
   pluralForm,
   unitSymbol,
 } from '../../src/i18n/format';
@@ -17,7 +21,13 @@ import { LANGUAGES, plain } from '../locales';
 const EXPECTED: Record<(typeof LANGUAGES)[number], Record<string, string>> = {
   en: {
     date: 'Nov 24, 2026',
-    dateTime: 'Nov 24, 2026, 2:05 PM',
+    dateInYear: 'Nov 24',
+    dateTime: 'Nov 24, 2026, 2:05 PM CST',
+    dateOrder: 'month day year',
+    month: 'November',
+    exact: '12.345 kg',
+    small: '0.04 kg',
+    fahrenheit: '190°F',
     number: '1,250.5',
     percent: '96.6%',
     wholePercent: '10%',
@@ -31,7 +41,13 @@ const EXPECTED: Record<(typeof LANGUAGES)[number], Record<string, string>> = {
   },
   es: {
     date: '24 nov 2026',
-    dateTime: '24 nov 2026, 2:05 p.m.',
+    dateInYear: '24 nov',
+    dateTime: '24 nov 2026, 2:05 p.m. CST',
+    dateOrder: 'day month year',
+    month: 'noviembre',
+    exact: '12.345 kg',
+    small: '0.04 kg',
+    fahrenheit: '190 °F',
     number: '1,250.5',
     percent: '96.6%',
     wholePercent: '10%',
@@ -45,7 +61,13 @@ const EXPECTED: Record<(typeof LANGUAGES)[number], Record<string, string>> = {
   },
   'pt-BR': {
     date: '24 de nov. de 2026',
-    dateTime: '24 de nov. de 2026, 14:05',
+    dateInYear: '24 de nov.',
+    dateTime: '24 de nov. de 2026, 14:05 GMT-6',
+    dateOrder: 'day month year',
+    month: 'novembro',
+    exact: '12,345 kg',
+    small: '0,04 kg',
+    fahrenheit: '190 °F',
     number: '1.250,5',
     percent: '96,6%',
     wholePercent: '10%',
@@ -75,8 +97,34 @@ describe.each(LANGUAGES)('format helpers in %s', (code) => {
     expect(plain(formatDate('2026-11-01', locale))).not.toContain('31');
   });
 
-  it('writes a moment in the plant time zone', () => {
+  it('writes a moment in the plant time zone, and says which zone', () => {
     expect(plain(formatDateTime(NOW, locale, 'America/Chicago'))).toBe(expected.dateTime);
+  });
+
+  it('leaves the year off a date in a list while it is this year’s, and puts it back when it is not', () => {
+    expect(plain(formatDateInYear('2026-11-24', '2026-11-26', locale))).toBe(expected.dateInYear);
+    expect(plain(formatDateInYear('2026-11-24', '2027-01-02', locale))).toBe(expected.date);
+    expect(plain(formatDateInYear('2026-11-24', undefined, locale))).toBe(expected.date);
+  });
+
+  it('knows the order the language writes a date in, and its months as words', () => {
+    expect(datePartOrder(locale).join(' ')).toBe(expected.dateOrder);
+    expect(monthName(11, locale)).toBe(expected.month);
+  });
+
+  it('repeats a typed number without rounding it when asked for its own decimals', () => {
+    expect(plain(formatQuantity(12.345, 'kilogram', locale, fractionDigits(12.345)))).toBe(expected.exact);
+    expect(plain(formatQuantity(0.04, 'kilogram', locale, fractionDigits(0.04)))).toBe(expected.small);
+    // One decimal stays the default, for columns.
+    expect(plain(formatQuantity(12.345, 'kilogram', locale))).not.toBe(expected.exact);
+  });
+
+  it('keeps a number and its unit on one line', () => {
+    for (const text of [formatQuantity(85, 'celsius', locale), formatQuantity(1250.5, 'kilogram', locale), formatQuantity(190, 'fahrenheit', locale)]) {
+      expect(text).not.toContain(' ');
+    }
+    expect(plain(formatQuantity(190, 'fahrenheit', locale))).toBe(expected.fahrenheit);
+    if (code !== 'en') expect(formatQuantity(85, 'celsius', locale)).toBe('85\u00A0°C');
   });
 
   it('writes numbers, percentages and quantities', () => {
@@ -124,5 +172,15 @@ describe('the region is one config value', () => {
     expect(formatNumber(12345.6, 'es-US')).toBe('12,345.6');
     expect(formatNumber(12345.6, 'es-ES')).toBe('12.345,6');
     expect(formatNumber(12345.6, 'es-MX')).toBe('12,345.6');
+  });
+});
+
+describe('decimals of a number', () => {
+  it('counts what was typed', () => {
+    expect(fractionDigits(12.345)).toBe(3);
+    expect(fractionDigits(0.04)).toBe(2);
+    expect(fractionDigits(1250.5)).toBe(1);
+    expect(fractionDigits(88)).toBe(0);
+    expect(fractionDigits(1.25)).toBe(2);
   });
 });

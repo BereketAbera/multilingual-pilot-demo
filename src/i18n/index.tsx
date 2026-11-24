@@ -1,29 +1,35 @@
 // The public face of localization. Screens import from here and nowhere else:
-// t and Msg for text, the format helpers for dates and numbers, parseNumber for input.
+// useI18n() gives t for text, date, dateTime, number, quantity, percent and relativeTime
+// for values, and parseNumber for input; Msg is for visible text.
 // The library behind it (i18next) is named only in instance.ts and this file.
 
 import { Fragment, createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { I18nextProvider, useTranslation } from 'react-i18next';
 import { SOURCE_LOCALE, STORAGE_KEY, isLocaleCode, localeConfig, type LocaleCode } from './config';
 import {
+  datePartOrder,
   formatDate,
+  formatDateInYear,
   formatDateTime,
   formatNumber,
   formatPercent,
   formatQuantity,
   formatRelativeDays,
   formatRelativeTime,
+  monthName,
   unitSymbol,
+  type DatePart,
   type Unit,
 } from './format';
 import { i18n } from './instance';
 import type { MessageKey, MessageValues } from './keys';
 import { parseNumber } from './parseNumber';
-import { hasOwnMessage } from './resources';
+import { fallbackCount, hasOwnMessage, messagePlaceholders } from './resources';
 
 export { LOCALES, type LocaleCode } from './config';
 export type { MessageKey, MessageValues } from './keys';
-export type { Unit } from './format';
+export type { DatePart, Unit } from './format';
+export { fractionDigits } from './format';
 
 const REVIEW_KEY = 'pilot.markFallbacks';
 
@@ -107,13 +113,23 @@ export interface I18n {
   t: (key: MessageKey, values?: MessageValues) => string;
   /** True when t would answer in English because the translation is missing. */
   isFallback: (key: MessageKey, count?: number) => boolean;
-  /** Translates a code sent by the API. Null when this client has no text for it. */
+  /**
+   * Translates a code sent by the API. Null when this client has no text for it, or when
+   * the text needs a value the API did not send: the caller then shows the server's own text.
+   */
   tCode: (code: string, values?: MessageValues) => { text: string; fallback: boolean } | null;
+  /** How many messages this language does not have yet and shows in English. */
+  fallbackCount: number;
   date: (isoDate: string) => string;
+  /** A date in a list, without the year while it is the same as the reference date's. */
+  dateInYear: (isoDate: string, referenceIsoDate?: string) => string;
   dateTime: (instant: string | Date, timeZone?: string) => string;
+  /** Day, month and year in the order this language writes them, and the months as words, for a date field. */
+  datePartOrder: DatePart[];
+  monthName: (month: number) => string;
   number: (value: number, maximumFractionDigits?: number) => string;
   percent: (ratio: number, minimumFractionDigits?: number) => string;
-  quantity: (value: number, unit: Unit) => string;
+  quantity: (value: number, unit: Unit, maximumFractionDigits?: number) => string;
   unit: (unit: Unit) => string;
   relativeTime: (instant: string | Date, now?: Date) => string;
   relativeDays: (isoDate: string, todayIso: string) => string;
@@ -134,15 +150,22 @@ function createI18n(locale: LocaleCode): I18n {
     t: (key, values) => translate(key, values ?? {}),
     isFallback,
     tCode: (code, values) => {
+      if (typeof code !== 'string' || !hasOwnMessage(SOURCE_LOCALE, 'errors', code)) return null;
       const key = `errors:${code}`;
-      if (!hasOwnMessage(SOURCE_LOCALE, 'errors', code)) return null;
-      return { text: translate(key, values ?? {}), fallback: isFallback(key) };
+      const supplied = values ?? {};
+      const own = hasOwnMessage(locale, 'errors', code) ? locale : SOURCE_LOCALE;
+      if (messagePlaceholders(own, 'errors', code).some((name) => !Object.hasOwn(supplied, name))) return null;
+      return { text: translate(key, supplied), fallback: isFallback(key) };
     },
+    fallbackCount: fallbackCount(locale, SOURCE_LOCALE),
     date: (isoDate) => formatDate(isoDate, formatLocale),
+    dateInYear: (isoDate, reference) => formatDateInYear(isoDate, reference, formatLocale),
     dateTime: (instant, timeZone) => formatDateTime(instant, formatLocale, timeZone),
+    datePartOrder: datePartOrder(formatLocale),
+    monthName: (month) => monthName(month, formatLocale),
     number: (value, digits) => formatNumber(value, formatLocale, digits),
     percent: (ratio, digits) => formatPercent(ratio, formatLocale, digits),
-    quantity: (value, unit) => formatQuantity(value, unit, formatLocale),
+    quantity: (value, unit, digits) => formatQuantity(value, unit, formatLocale, digits),
     unit: (unit) => unitSymbol(unit, formatLocale),
     relativeTime: (instant, now = new Date()) => formatRelativeTime(instant, now, formatLocale),
     relativeDays: (isoDate, todayIso) => formatRelativeDays(isoDate, todayIso, formatLocale),
