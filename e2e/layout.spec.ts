@@ -233,7 +233,17 @@ test('the Handoff figure shows one drawing at a time, with a name and a descript
   await expect(drawing).toHaveAccessibleDescription(/Path 1, the normal case.*Path 2, a fallback.*Path 3, a fallback/);
   await expect(drawing.getByText('What the user sees', { exact: true })).toHaveCount(1);
 
-  // On a phone the other drawing takes its place: each path top to bottom, inside the window.
+  // A laptop window: each path is its own drawing, top to bottom, and the three fill the panel side by side.
+  await page.setViewportSize({ width: 1100, height: 800 });
+  await expect(drawing).toHaveCount(1);
+  await expect(drawing).toHaveAccessibleName(/^Where a backend message goes/);
+  await expect(drawing.getByText('What the user sees', { exact: true })).toHaveCount(3);
+  const [panel, laptop] = await Promise.all([page.getByTestId('backend-paths').boundingBox(), drawing.boundingBox()]);
+  expect(laptop && panel && laptop.width / panel.width, 'fills the panel').toBeGreaterThan(0.95);
+  const tops = await drawing.locator('svg').evaluateAll((drawings) => drawings.map((each) => Math.round(each.getBoundingClientRect().top)));
+  expect(new Set(tops).size, `the three start level: ${tops.join(', ')}`).toBe(1);
+
+  // On a phone the same three, one under the other, inside the window.
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(drawing).toHaveCount(1);
   await expect(drawing.getByText('What the user sees', { exact: true })).toHaveCount(3);
@@ -249,6 +259,7 @@ test('the icons a browser or a phone asks for by name are images, not the page',
     ['/favicon.svg', 'image/svg+xml'],
     ['/apple-touch-icon.png', 'image/png'],
     ['/og.png', 'image/png'],
+    ['/robots.txt', 'text/plain'],
   ] as const) {
     const response = await request.get(path);
     expect(response.status(), path).toBe(200);
