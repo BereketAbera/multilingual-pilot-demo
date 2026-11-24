@@ -51,7 +51,7 @@ problem details, a request culture read from `Accept-Language`). No .NET code wa
 
 The Spanish and Portuguese text was written for this sample from a glossary and has not been reviewed by a native
 speaker. Terms that were not checked against a published source are marked on the Handoff page. In a real project
-the translations come from the client's translators.
+the translations come from your own translators.
 
 Of the three libraries in the Handoff's table, only react-i18next was built and run here. The FormatJS and Lingui
 columns are from each library's documentation, read in November 2026.

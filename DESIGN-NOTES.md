@@ -21,7 +21,9 @@ made-up product gets an identity without a picture, a flag or a leaf. Two addres
 name, `/favicon.ico` and `/apple-touch-icon.png`, used to be answered with the HTML page; they are real files now.
 
 **Details.** The uprights sit on whole pixels at 16 and 32, so the four strokes stay four in a tab. The fifth stroke
-has a thin clear edge where it crosses the others. The header mark is decoration next to the name (empty alt text) and
+has a thin clear edge where it crosses the others. The 16 pixel picture inside `favicon.ico` is drawn without that
+edge and with the fifth stroke half a pixel heavier, because at that size the edge is under a pixel and only blurred
+the stroke. The header mark is decoration next to the name (empty alt text) and
 is hidden below 640 pixels wide, where the header has no room for it.
 
 ## 2. One figure: where a message from the backend goes
@@ -31,16 +33,20 @@ text for. Dashed violet marks the two fallbacks: a code with no client text or a
 code at all.
 
 **Where.** The Handoff page, under "Messages from the backend", after the first paragraph
-(`src/components/sample/BackendMessagePaths.tsx`, with the two drawings in `src/assets/diagrams/`). The README shows
+(`src/components/sample/BackendMessagePaths.tsx`, with the drawings in `src/assets/diagrams/`). The README shows
 the same figure as `docs/backend-messages.png`.
 
-**Why.** Messages that come from the .NET backend are the one dependency the client asked about by name, and the page
-answered in four paragraphs. The figure shows which case is the goal, what the user reads in the other two, and what
+**Why.** Messages that come from the .NET backend are the dependency most worth raising early, and the page answered
+in four paragraphs. The figure shows which case is the goal, what the user reads in the other two, and what
 the API's owners would be asked for, before anyone reads the paragraphs.
 
 **Details.** On the page the drawing is inline SVG, so its words are text in the page's own fonts and stay sharp at
-any zoom. There are two layouts: four columns where the panel can show them at full size (1280 pixels and wider), and
-top to bottom below that. A screen reader gets one image with a title and a full description. The codes and the
+any zoom. There are three layouts from two drawings. At 1280 pixels and wider, four columns with a row for each path,
+with text at 14 pixels, a size under the page's 15. Below that each path is its own small drawing that reads top to
+bottom: the three stand side by side from 1024 pixels, where they fill the panel, and one under the other on anything
+narrower. The boxes of the three are the same height at each step, so side by side they line up in rows. Each path's
+name is written by the page above its drawing, so it wraps to whatever width it is given. A screen reader gets one
+image with a title and a full description, whichever layout is showing. The codes and the
 Portuguese message are read from `contracts/api-error-codes.json` and `src/i18n/locales/pt-BR/errors.json` when the
 figure is built, and the build stops if the code used for the second path is ever given a translation.
 
@@ -79,12 +85,12 @@ design/build.sh
 It needs Python 3, with nothing beyond the standard library, and Inkscape 1.4 (`inkscape` on the PATH, or set
 `INKSCAPE`). Nothing is downloaded. The steps, in order:
 
-1. `design/make_assets.py svg` writes the SVG sources. The header mark and the two inline drawings are used exactly as
-   written. To break the diagram's lines in the right places it measures the text with the IBM Plex files the app
+1. `design/make_assets.py svg` writes the SVG sources. The header mark and the inline drawings are used exactly as
+   written, with the small file of names the page writes above them. To break the diagram's lines in the right places it measures the text with the IBM Plex files the app
    already ships (`node_modules/@fontsource`).
 2. Inkscape turns the tab icon's strokes into filled shapes (`object-stroke-to-path`), and
    `design/make_assets.py tidy` strips Inkscape's export down to shapes and fills: `public/favicon.svg`.
-3. Inkscape draws that icon at 16, 32 and 48 pixels and `design/make_assets.py ico` packs them into
+3. Inkscape draws that icon at 32 and 48 pixels, and its 16 pixel drawing at 16, and `design/make_assets.py ico` packs them into
    `public/favicon.ico`. The phone icon is drawn at 180 pixels: `public/apple-touch-icon.png`.
 4. `design/make_assets.py fonts` unpacks the same IBM Plex files to TTF, and Inkscape draws the README's figure with
    them at twice its size: `docs/backend-messages.png`.
