@@ -37,6 +37,11 @@ Everything is fictional: the app (Tallyfield), the producer, the plant, and ever
 - **A handoff page** with the steps to run and test, add a language, enable another screen and check it in staging,
   a glossary, and a table mapping each step to react-i18next, FormatJS and Lingui.
 
+Where a message from the backend goes, as one picture. The Handoff page has the same figure, with the .NET side
+written out under it.
+
+![Three paths from the API's answer to what the user sees. Path 1, the normal case: the API sends a code the client has text for, the client translates it and formats its values, and the user reads the message in their own language. Path 2: the client has no text for the code, or a value is missing, so the user sees the server's English detail and the code is listed on the Translation status page. Path 3: the API sends no code at all, so the server's own words are shown on the fields it names, and that is a dependency to raise before work starts.](docs/backend-messages.png)
+
 ## What is real and what is a stand-in
 
 Real: the React setup, the translation files, the fallback, the formatting helpers, the parser, the checks and the tests.
@@ -78,6 +83,7 @@ src/screens/not-enabled/Receiving.tsx   the "before" picture
 src/screens/sample/  notes about the sample: start page, translation status, handoff
 scripts/             the checks and the pseudo-locale script, plain Node over the JSON files
 contracts/           the list of codes the API can send
+design/              the script and the commands that draw the icon and the diagram (see DESIGN-NOTES.md)
 api/                 the stand-in API
 azure-pipelines.yml  the same checks as pipeline steps (not yet run in Azure DevOps)
 ```
@@ -109,8 +115,8 @@ pnpm build
   itself, its culture handling, and its "today" in the evening at the plant.
 - Screen: each pilot screen rendered in each language and the pseudo-locale with no raw key or unfilled
   placeholder; the fallback marking; plurals including zero; the form end to end against the real API handler,
-  including that it repeats a typed number exactly; and what the form does with an answer that has no code, a
-  missing value or the wrong shape.
+  including that it repeats a typed number exactly, and only a number it would accept; and what the form does with
+  an answer that has no code, a missing value or the wrong shape.
 - Browser, once per language: switch language, read a date and a number, submit the form with a number typed that
   language's way, trigger the server-only rule and read the translated message. Under the pseudo-locale no page may
   scroll sideways at 1280 or 768 wide; in the real languages no table row may be taller than two lines at 1280 or
@@ -121,7 +127,8 @@ pnpm build
 was written for the handoff and has not been run in Azure DevOps. In Azure Repos it is attached to the target branch
 as a build validation policy, so a pull request cannot complete while a check fails.
 
-`pnpm screens` takes the screenshots into `./screens`; set `SCREENS_DIR` to send them somewhere else.
+`pnpm screens` takes the screenshots into `./screens`; set `SCREENS_DIR` to send them somewhere else and
+`SCREENS_SCALE=2` for twice the pixels.
 
 ## Known limits
 

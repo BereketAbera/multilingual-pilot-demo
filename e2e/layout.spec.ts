@@ -222,3 +222,36 @@ test('the first Tab shows the skip link on top of the header, and the Handoff co
     await page.evaluate(() => window.scrollTo(0, 0));
   }
 });
+
+test('the Handoff figure shows one drawing at a time, with a name and a description for a screen reader', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/handoff');
+  const drawing = page.getByTestId('backend-paths').getByRole('img');
+  // Wide enough for the four columns at full size.
+  await expect(drawing).toHaveCount(1);
+  await expect(drawing).toHaveAccessibleName(/^Where a backend message goes/);
+  await expect(drawing).toHaveAccessibleDescription(/Path 1, the normal case.*Path 2, a fallback.*Path 3, a fallback/);
+  await expect(drawing.getByText('What the user sees', { exact: true })).toHaveCount(1);
+
+  // On a phone the other drawing takes its place: each path top to bottom, inside the window.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(drawing).toHaveCount(1);
+  await expect(drawing.getByText('What the user sees', { exact: true })).toHaveCount(3);
+  await expect(drawing).toHaveAccessibleDescription(/Path 1, the normal case/);
+  const box = await drawing.boundingBox();
+  expect(box && box.x + box.width, 'inside the window').toBeLessThanOrEqual(390);
+  await expectNoSidewaysScroll(page);
+});
+
+test('the icons a browser or a phone asks for by name are images, not the page', async ({ request }) => {
+  for (const [path, type] of [
+    ['/favicon.ico', 'image/'],
+    ['/favicon.svg', 'image/svg+xml'],
+    ['/apple-touch-icon.png', 'image/png'],
+    ['/og.png', 'image/png'],
+  ] as const) {
+    const response = await request.get(path);
+    expect(response.status(), path).toBe(200);
+    expect(response.headers()['content-type'], path).toContain(type);
+  }
+});
