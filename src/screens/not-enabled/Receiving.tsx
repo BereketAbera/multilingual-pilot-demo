@@ -41,7 +41,7 @@ export default function Receiving() {
         <p className="mt-1 text-muted">{todayCount + ' deliveries today'}</p>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-line bg-white" tabIndex={0} role="region" aria-label="Receiving">
+      <div className="scroll-x rounded-lg border border-line bg-white" tabIndex={0} role="region" aria-label="Receiving">
         <table className="w-full min-w-[44rem] border-collapse">
           <thead>
             <tr className="border-b border-line">

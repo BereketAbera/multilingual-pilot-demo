@@ -282,7 +282,7 @@ function OutputForm({ orders, today }: { orders: Order[]; today: string }) {
         : null;
 
   return (
-    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,34rem)_minmax(0,1fr)]">
+    <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,34rem)_minmax(0,1fr)]">
       <form ref={formRef} noValidate onSubmit={(event) => void submit(event)} className="space-y-5 rounded-lg border border-line bg-white p-4">
         <Field name="orderNo" label="output:field.order" issue={issues.orderNo}>
           {(props) => (
@@ -300,7 +300,7 @@ function OutputForm({ orders, today }: { orders: Order[]; today: string }) {
           )}
         </Field>
 
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <Field
             name="quantity"
             label="output:field.quantity"
@@ -327,7 +327,7 @@ function OutputForm({ orders, today }: { orders: Order[]; today: string }) {
           </Field>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <Field
             name="productionDate"
             label="output:field.productionDate"

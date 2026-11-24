@@ -45,7 +45,7 @@ function FormatTable() {
     ['Count of 3', (i18n) => i18n.t('lot:trace.forward.count', { count: 3 })],
   ];
   return (
-    <div className="overflow-x-auto rounded-lg border border-line bg-white" tabIndex={0} role="region" aria-label="Formats in each language">
+    <div className="scroll-x rounded-lg border border-line bg-white" tabIndex={0} role="region" aria-label="Formats in each language">
       <table className="w-full min-w-[40rem] border-collapse" data-testid="format-table">
         <thead>
           <tr className="border-b border-line">
@@ -88,7 +88,7 @@ export default function Home() {
       </SampleNote>
 
       <h2 className="mb-3 text-lg">Eight things to try</h2>
-      <ol className="grid gap-3 lg:grid-cols-2">
+      <ol className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         <Try step={1} title="Switch the language, top right">
           Each language is named in its own language. The choice is saved, sets the page’s <Code>lang</Code> attribute and goes to
           the API as <Code>Accept-Language</Code> on every call.
@@ -128,7 +128,7 @@ export default function Home() {
       <FormatTable />
 
       <h2 className="mb-3 mt-8 text-lg">What is real here, and what is a stand-in</h2>
-      <div className="grid gap-3 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
         <div className="rounded-lg border border-line bg-white p-4">
           <h3 className="text-base">Real</h3>
           <p className="mt-1 text-muted">

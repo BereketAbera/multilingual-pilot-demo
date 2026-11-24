@@ -98,7 +98,7 @@ function LotDetail({ lot }: { lot: LotData }) {
         </dl>
       </section>
 
-      <div className="grid items-start gap-5 xl:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-2">
         <Panel
           id="trace-back"
           title={<Msg id="lot:trace.back.title" />}
@@ -107,7 +107,7 @@ function LotDetail({ lot }: { lot: LotData }) {
           <p className="px-4 pt-3 text-sm text-muted">
             <Msg id="lot:trace.back.hint" />
           </p>
-          <div className="overflow-x-auto" tabIndex={0} role="region" aria-labelledby="trace-back">
+          <div className="scroll-x" tabIndex={0} role="region" aria-labelledby="trace-back">
             <table className="w-full min-w-[34rem] border-collapse">
               <thead>
                 <tr className="border-b border-line">
@@ -151,7 +151,7 @@ function LotDetail({ lot }: { lot: LotData }) {
               <p className="px-4 pt-3 text-sm text-muted">
                 <Msg id="lot:trace.forward.hint" />
               </p>
-              <div className="overflow-x-auto" tabIndex={0} role="region" aria-labelledby="trace-forward">
+              <div className="scroll-x" tabIndex={0} role="region" aria-labelledby="trace-forward">
                 <table className="w-full min-w-[30rem] border-collapse">
                   <thead>
                     <tr className="border-b border-line">
@@ -187,7 +187,7 @@ function LotDetail({ lot }: { lot: LotData }) {
           </span>
         }
       >
-        <div className="overflow-x-auto" tabIndex={0} role="region" aria-labelledby="haccp">
+        <div className="scroll-x" tabIndex={0} role="region" aria-labelledby="haccp">
           <table className="w-full min-w-[44rem] border-collapse">
             <thead>
               <tr className="border-b border-line">
@@ -213,7 +213,7 @@ function LotDetail({ lot }: { lot: LotData }) {
                       </span>
                     ) : null}
                   </th>
-                  <td className="td">{limitText(check, i18n)}</td>
+                  <td className="td sm:whitespace-nowrap">{limitText(check, i18n)}</td>
                   <td className="td whitespace-nowrap tabular-nums">{readingText(check, i18n)}</td>
                   <td className="td"><ResultChip result={check.result} /></td>
                   <td className="td whitespace-nowrap">{i18n.dateTime(check.checkedAt, zone)}</td>

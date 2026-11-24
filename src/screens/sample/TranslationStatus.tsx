@@ -53,7 +53,7 @@ export default function TranslationStatus() {
         </p>
       </SampleNote>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" data-testid="language-cards">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4" data-testid="language-cards">
         <div className="rounded-lg border border-line bg-white p-4">
           <p className="text-sm text-muted">Source</p>
           <p className="text-lg font-semibold">English</p>
@@ -95,7 +95,7 @@ export default function TranslationStatus() {
         These show in English, with a dotted violet underline in review mode. They are reported, not failed, because translations
         arrive after the code. The five Portuguese strings below were left out on purpose so the fallback has something to show.
       </p>
-      <div className="overflow-x-auto rounded-lg border border-line bg-white" tabIndex={0} role="region" aria-label="Not translated yet">
+      <div className="scroll-x rounded-lg border border-line bg-white" tabIndex={0} role="region" aria-label="Not translated yet">
         <table className="w-full min-w-[44rem] border-collapse" data-testid="missing-table">
           <thead>
             <tr className="border-b border-line">
@@ -134,7 +134,7 @@ export default function TranslationStatus() {
         <Code>errors</Code> file. A code with no client text is not an error: the user sees the server’s own English text until the
         translation is added.
       </p>
-      <div className="overflow-x-auto rounded-lg border border-line bg-white" tabIndex={0} role="region" aria-label="Messages from the API">
+      <div className="scroll-x rounded-lg border border-line bg-white" tabIndex={0} role="region" aria-label="Messages from the API">
         <table className="w-full min-w-[40rem] border-collapse" data-testid="codes-table">
           <thead>
             <tr className="border-b border-line">
@@ -212,7 +212,7 @@ export default function TranslationStatus() {
       </ul>
 
       <h2 className="mb-2 mt-8 text-lg">What the command prints</h2>
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         <div>
           <p className="mb-1 font-mono text-sm">pnpm i18n:check</p>
           <pre tabIndex={0} aria-label="Output of pnpm i18n:check" className="max-h-96 overflow-auto rounded-lg border border-line bg-white p-3 font-mono text-[0.8125rem] leading-relaxed">{output}</pre>

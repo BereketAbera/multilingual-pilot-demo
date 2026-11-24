@@ -19,7 +19,7 @@ function Steps({ children }: { children: ReactNode }) {
 
 function Block({ children, label }: { children: string; label: string }) {
   return (
-    <pre tabIndex={0} aria-label={label} className="overflow-x-auto rounded-lg border border-line bg-white p-3 font-mono text-[0.8125rem] leading-relaxed">
+    <pre tabIndex={0} aria-label={label} className="scroll-x rounded-lg border border-line bg-white p-3 font-mono text-[0.8125rem] leading-relaxed">
       {children}
     </pre>
   );
@@ -147,7 +147,7 @@ export default function Handoff() {
       </SampleNote>
 
       <nav aria-label="On this page" className="rounded-lg border border-line bg-white p-4">
-        <ul className="grid gap-x-6 gap-y-1 sm:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
           {CONTENTS.map(([id, title]) => (
             <li key={id}>
               <a href={`#${id}`} className="inline-flex min-h-9 items-center text-action underline underline-offset-2">
@@ -241,8 +241,10 @@ pnpm test:e2e               # one browser run per language, plus the pseudo-loca
         <Steps>
           <li>
             Take the inventory. Add the screen’s file to the hard-coded text rule in <Code>eslint.config.mjs</Code> and run{' '}
-            <Code>pnpm lint</Code>: every literal string is listed with its line. Sort them into plain labels, messages with
-            values, plurals, validation, backend messages, and dates or numbers formatted by hand.
+            <Code>pnpm lint</Code>: every literal string in the markup is listed with its line. On Receiving that is 12 findings,
+            including the two strings joined from pieces. Sort them into plain labels, messages with values, plurals, validation,
+            backend messages, and dates or numbers formatted by hand. The rule cannot see words that sit in data, such as the
+            status column here, or a date built by hand; step five catches those.
           </li>
           <li>
             Create <Code>src/i18n/locales/en/receiving.json</Code> and add <Code>receiving</Code> to the list of files in{' '}
@@ -305,7 +307,7 @@ pnpm test:e2e               # one browser run per language, plus the pseudo-loca
           The sample is built on react-i18next, the most widely used of the three. The checks and the pseudo-locale are plain
           scripts over the JSON files, so the steps above hold whichever one your app already has.
         </p>
-        <div className="overflow-x-auto rounded-lg border border-line bg-white" tabIndex={0} role="region" aria-label="The same steps in three libraries">
+        <div className="scroll-x rounded-lg border border-line bg-white" tabIndex={0} role="region" aria-label="The same steps in three libraries">
           <table className="w-full min-w-[52rem] border-collapse text-sm">
             <thead>
               <tr className="border-b border-line">
@@ -340,7 +342,7 @@ pnpm test:e2e               # one browser run per language, plus the pseudo-loca
           The terms the sample’s Spanish and Portuguese are built on. Spanish is Latin American, Portuguese is Brazilian. Terms
           tagged in violet were not checked against a published source and should be confirmed.
         </p>
-        <div className="overflow-x-auto rounded-lg border border-line bg-white" tabIndex={0} role="region" aria-label="Glossary">
+        <div className="scroll-x rounded-lg border border-line bg-white" tabIndex={0} role="region" aria-label="Glossary">
           <table className="w-full min-w-[44rem] border-collapse" data-testid="glossary">
             <thead>
               <tr className="border-b border-line">

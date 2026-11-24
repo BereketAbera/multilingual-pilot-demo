@@ -18,7 +18,7 @@ function Wire({ label, firstLine, headers, body }: { label: string; firstLine: s
       <pre
         tabIndex={0}
         aria-label={label}
-        className="overflow-x-auto whitespace-pre-wrap break-words rounded-md border border-line bg-page p-3 font-mono text-[0.8125rem] leading-relaxed"
+        className="scroll-x whitespace-pre-wrap break-words rounded-md border border-line bg-page p-3 font-mono text-[0.8125rem] leading-relaxed"
       >
         {text}
       </pre>

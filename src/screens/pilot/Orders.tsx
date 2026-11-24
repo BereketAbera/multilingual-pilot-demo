@@ -49,7 +49,7 @@ export default function Orders() {
       {error ? <LoadError error={error} onRetry={reload} /> : null}
       {data ? (
         <div className="rounded-lg border border-line bg-white">
-          <fieldset className="grid gap-3 border-b border-line p-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
+          <fieldset className="grid min-w-0 grid-cols-1 gap-3 border-b border-line p-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
             <legend className="sr-only">
               <Msg id="orders:filter.legend" />
             </legend>
@@ -130,7 +130,7 @@ export default function Orders() {
           </p>
 
           {filtered.length > 0 ? (
-            <div className="overflow-x-auto border-t border-line" tabIndex={0} role="region" aria-label={t('orders:title')}>
+            <div className="scroll-x border-t border-line" tabIndex={0} role="region" aria-label={t('orders:title')}>
               <table className="w-full min-w-[56rem] border-collapse">
                 <thead>
                   <tr className="border-b border-line">
