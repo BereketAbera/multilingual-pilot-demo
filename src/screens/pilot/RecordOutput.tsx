@@ -161,7 +161,7 @@ function OrderFacts({ order }: { order: Order }) {
           <dt className="text-muted">
             <Msg id={label} />
           </dt>
-          <dd className="font-medium">{value}</dd>
+          <dd className="text-pretty font-medium">{value}</dd>
         </div>
       ))}
     </dl>

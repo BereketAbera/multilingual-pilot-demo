@@ -65,8 +65,10 @@ test('pseudo-locale', async ({ page }) => {
 test('handoff', async ({ page }) => {
   await page.goto('/handoff');
   await expect(page.getByTestId('glossary')).toBeAttached();
-  await page.locator('#language').scrollIntoViewIfNeeded();
-  await page.evaluate(() => window.scrollBy(0, -24));
+  await page.evaluate(() => {
+    const heading = document.getElementById('language');
+    if (heading) window.scrollTo(0, heading.getBoundingClientRect().top + window.scrollY - 84);
+  });
   await page.screenshot({ path: shot('handoff-desktop') });
 });
 

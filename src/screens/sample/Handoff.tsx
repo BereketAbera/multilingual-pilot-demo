@@ -4,7 +4,7 @@ import { usePageTitle } from '../../lib/usePageTitle';
 
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
-    <section aria-labelledby={id} className="mt-8 scroll-mt-4">
+    <section aria-labelledby={id} className="mt-8 scroll-mt-20">
       <h2 id={id} className="mb-3 text-lg">
         {title}
       </h2>

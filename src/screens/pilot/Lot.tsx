@@ -53,7 +53,7 @@ function Fact({ label, children, testId }: { label: MessageKey; children: ReactN
       <dt className="text-sm text-muted">
         <Msg id={label} />
       </dt>
-      <dd className="mt-0.5 font-medium" data-testid={testId}>
+      <dd className="mt-0.5 text-pretty font-medium" data-testid={testId}>
         {children}
       </dd>
     </div>

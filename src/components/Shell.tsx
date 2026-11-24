@@ -72,7 +72,7 @@ export function Shell() {
       >
         <Msg id="common:header.skip" />
       </a>
-      <header className="border-b border-line bg-white">
+      <header className="sticky top-0 z-20 border-b border-line bg-white">
         <div className="flex items-center gap-3 px-4 py-2 md:px-6">
           <button
             type="button"
@@ -99,29 +99,27 @@ export function Shell() {
       </header>
       {locale === 'en-XA' ? <PseudoBanner /> : null}
       <div className="flex flex-1 flex-col md:flex-row">
-        <nav
-          id="app-nav"
-          aria-label={t('common:nav.label')}
-          className={`${menuOpen ? 'block' : 'hidden'} shrink-0 border-b border-line bg-white p-3 md:block md:w-60 md:border-b-0 md:border-r`}
-        >
-          <ul className="space-y-1">
-            <NavItem to="/orders" icon={<ClipboardList aria-hidden="true" className={iconClass} />} onNavigate={closeMenu}>
-              <Msg id="common:nav.orders" />
-            </NavItem>
-            <NavItem to="/lots" icon={<PackageSearch aria-hidden="true" className={iconClass} />} onNavigate={closeMenu}>
-              <Msg id="common:nav.lots" />
-            </NavItem>
-            <NavItem to="/record-output" icon={<SquarePen aria-hidden="true" className={iconClass} />} onNavigate={closeMenu}>
-              <Msg id="common:nav.recordOutput" />
-            </NavItem>
-            <UnenabledNavItem onNavigate={closeMenu} />
-          </ul>
-          <SampleNav onNavigate={closeMenu} />
-          <div className="mt-3 space-y-1 border-t border-line px-3 pt-3 md:hidden">
-            <PlantInfo />
-            <ReviewToggle />
-          </div>
-        </nav>
+        <div className={`${menuOpen ? 'block' : 'hidden'} shrink-0 border-b border-line bg-white md:block md:w-60 md:border-b-0 md:border-r`}>
+          <nav id="app-nav" aria-label={t('common:nav.label')} className="p-3 md:sticky md:top-[3.8125rem]">
+            <ul className="space-y-1">
+              <NavItem to="/orders" icon={<ClipboardList aria-hidden="true" className={iconClass} />} onNavigate={closeMenu}>
+                <Msg id="common:nav.orders" />
+              </NavItem>
+              <NavItem to="/lots" icon={<PackageSearch aria-hidden="true" className={iconClass} />} onNavigate={closeMenu}>
+                <Msg id="common:nav.lots" />
+              </NavItem>
+              <NavItem to="/record-output" icon={<SquarePen aria-hidden="true" className={iconClass} />} onNavigate={closeMenu}>
+                <Msg id="common:nav.recordOutput" />
+              </NavItem>
+              <UnenabledNavItem onNavigate={closeMenu} />
+            </ul>
+            <SampleNav onNavigate={closeMenu} />
+            <div className="mt-3 space-y-1 border-t border-line px-3 pt-3 md:hidden">
+              <PlantInfo />
+              <ReviewToggle />
+            </div>
+          </nav>
+        </div>
         <main id="main" tabIndex={-1} className="min-w-0 flex-1 px-4 py-5 outline-none md:px-6 md:py-6">
           <Outlet />
         </main>
