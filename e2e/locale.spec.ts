@@ -251,6 +251,8 @@ test('the date fields follow the app’s language, not the browser’s', async (
     page.locator('[data-field="bestBeforeDate"] select').evaluateAll((selects) => selects.map((select) => (select as HTMLSelectElement).name.split('-')[1]));
   await page.goto('/record-output');
   await chooseLanguage(page, 'en');
+  // The form appears once the orders and the plant's settings have arrived.
+  await expect(page.locator('select[name="bestBeforeDate-year"]')).toBeVisible();
   expect(await order()).toEqual(['month', 'day', 'year']);
   await chooseLanguage(page, 'pt-BR');
   expect(await order()).toEqual(['day', 'month', 'year']);
