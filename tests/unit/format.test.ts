@@ -124,7 +124,8 @@ describe.each(LANGUAGES)('format helpers in %s', (code) => {
       expect(text).not.toContain(' ');
     }
     expect(plain(formatQuantity(190, 'fahrenheit', locale))).toBe(expected.fahrenheit);
-    if (code !== 'en') expect(formatQuantity(85, 'celsius', locale)).toBe('85\u00A0°C');
+    // Spanish and Portuguese put a no-break space before the degree sign; some languages (French) use the narrow one.
+    if (code !== 'en') expect(formatQuantity(85, 'celsius', locale)).toMatch(/^85[\u00A0\u202F]°C$/);
   });
 
   it('writes numbers, percentages and quantities', () => {

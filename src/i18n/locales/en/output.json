@@ -1,6 +1,6 @@
 {
   "title": "Record production output",
-  "intro": "Enter what came off the line. Quantities use the plant's units.",
+  "intro": "Enter what came off the line. Quantities use the plant’s units.",
   "field.order": "Production order",
   "field.orderPlaceholder": "Choose an order",
   "field.quantity": "Quantity produced",

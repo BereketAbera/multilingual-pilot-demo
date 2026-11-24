@@ -2,6 +2,7 @@
   "app.tagline": "Producción y trazabilidad",
   "header.plant": "Planta: {{name}}",
   "header.units": "Unidades de la planta: {{units}}",
+  "header.plantUnavailable": "No se pudo cargar la configuración de la planta",
   "header.language": "Idioma",
   "header.markFallbacks": "Marcar textos sin traducir",
   "header.fallbackCount_zero": "En este idioma no falta ninguna traducción",

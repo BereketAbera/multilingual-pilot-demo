@@ -193,15 +193,17 @@ describe('plurals, including zero', () => {
     expect(screen.getByTestId('orders-summary').textContent).toContain(expected[locale].none);
   });
 
-  it.each([
-    ['en', 'No shipments yet', '1 check failed'],
-    ['es', 'Sin envíos todavía', '1 control no cumple'],
-    ['pt-BR', 'Nenhuma expedição ainda', '1 verificação não conforme'],
-  ] as const)('a lot on hold in %s has no shipments and one failed check', async (locale, shipments, checks) => {
+  const onHold: Record<Language, { shipments: string; checks: string }> = {
+    en: { shipments: 'No shipments yet', checks: '1 check failed' },
+    es: { shipments: 'Sin envíos todavía', checks: '1 control no cumple' },
+    'pt-BR': { shipments: 'Nenhuma expedição ainda', checks: '1 verificação não conforme' },
+  };
+
+  it.each(LANGUAGES)('a lot on hold in %s has no shipments and one failed check', async (locale) => {
     await setLocale(locale);
     renderScreen('/lots/CF-26-0426');
-    expect((await screen.findByTestId('shipment-count')).textContent).toBe(shipments);
-    expect(screen.getByTestId('haccp-summary').textContent).toBe(checks);
+    expect((await screen.findByTestId('shipment-count')).textContent).toBe(onHold[locale].shipments);
+    expect(screen.getByTestId('haccp-summary').textContent).toBe(onHold[locale].checks);
   });
 });
 
@@ -319,14 +321,45 @@ describe('what the form repeats is what it sends', () => {
     expect(screen.getByTestId('exchange-outcome').textContent).toContain('12.345');
   });
 
-  it('refuses 0,04 kg in Portuguese with the same limits the API has, and stops repeating it', async () => {
+  it('refuses 0,04 kg in Portuguese with the same limits the API has, and never says it will be recorded', async () => {
     const { submit } = await fillWith('pt-BR', '0,04', '88,5');
-    expect(plain(screen.getByTestId('reads-quantity').textContent ?? '')).toBe('Será registrado como 0,04 kg');
+    // Under the minimum: the field keeps its hint instead of repeating a number the form would refuse.
+    expect(screen.queryByTestId('reads-quantity')).toBeNull();
+    expect(screen.getByText('Digite o número como você costuma escrever, por exemplo 1.250,5.')).toBeTruthy();
     await submit();
     expect(plain(screen.getByTestId('error-quantity').textContent ?? '')).toBe('Digite uma quantidade entre 0,1 kg e 20.000 kg.');
-    // The line that repeats the number is gone while the field has an error, so the two cannot contradict each other.
     expect(screen.queryByTestId('reads-quantity')).toBeNull();
     expect(await sent()).toBeUndefined();
+  });
+
+  it.each(LANGUAGES)('repeats a number or a date only when the form would accept it, in %s', async (locale) => {
+    const i18n = i18nFor(locale);
+    const { user, field } = await fillForm(locale, 'PO-26-1186');
+    const type = async (name: string, value: string) => {
+      await user.clear(field(name));
+      await user.type(field(name), value);
+    };
+    // Under the minimum, more decimals than the plant records, over the maximum: each typed this language's way.
+    for (const [value, decimals] of [[0.05, 2], [12.3456, 4], [20000.1, 1]] as const) {
+      await type('quantity', i18n.number(value, decimals));
+      expect(screen.queryByTestId('reads-quantity')).toBeNull();
+    }
+    await type('quantity', i18n.number(0.1, 1));
+    expect(plain(screen.getByTestId('reads-quantity').textContent ?? '')).toContain(plain(i18n.quantity(0.1, 'kilogram')));
+
+    expect(screen.getByTestId('reads-temperature')).toBeTruthy();
+    await type('temperature', i18n.number(150.5, 1));
+    expect(screen.queryByTestId('reads-temperature')).toBeNull();
+
+    // The same for a date: a best-before date on the production date itself is refused on submit, so it is not repeated.
+    expect(screen.getByTestId('reads-best-before')).toBeTruthy();
+    const [year = '', month = '', day = ''] = isoDate(new Date()).split('-');
+    await user.selectOptions(field('bestBeforeDate-year'), year);
+    await user.selectOptions(field('bestBeforeDate-month'), month);
+    await user.selectOptions(field('bestBeforeDate-day'), day);
+    expect(screen.queryByTestId('reads-best-before')).toBeNull();
+    expect(screen.getByTestId('reads-production-date')).toBeTruthy();
+    expect(await postedBody()).toBeUndefined();
   });
 
   it('refuses more decimals than the plant records, and a negative shrink, in words that say so', async () => {
@@ -487,10 +520,16 @@ describe('answers the stand-in does not give, but a real API might', () => {
     const error = await screen.findByTestId('load-error');
     expect(error.textContent).toContain('No se pudieron cargar los datos.');
     expect(container.querySelector('[name="orderNo"]')).toBeNull();
+    // The header's plant line does not just vanish: it says, in the user's language, that the settings are missing.
+    const plantLine = screen.getAllByTestId('plant-unavailable')[0];
+    expect(plantLine?.textContent).toBe('No se pudo cargar la configuración de la planta');
+    expect(plantLine?.querySelector('[data-fallback]')).toBeNull();
     failing = false;
     await userEvent.click(within(error).getByRole('button', { name: 'Intentar de nuevo' }));
     await screen.findAllByText('PO-26-1185', { exact: false });
     expect(container.querySelector('[name="orderNo"]')).not.toBeNull();
+    expect(screen.queryByTestId('plant-unavailable')).toBeNull();
+    expect(container.querySelector('header')?.textContent).toContain('Planta: ');
   });
 });
 
@@ -513,17 +552,16 @@ describe('lot screen edge cases', () => {
     expect(container.querySelectorAll('#lot-picker option')).toHaveLength(7);
   });
 
-  it.each([
-    ['en', 'CST'],
-    ['es', 'CST'],
-    ['pt-BR', 'GMT-6'],
-  ] as const)('times of day say which time zone they are in, in %s', async (locale, zone) => {
+  // The zone's short name comes from the browser's own data, so it is not the same in every language.
+  const zoneLabel: Record<Language, string> = { en: 'CST', es: 'CST', 'pt-BR': 'GMT-6' };
+
+  it.each(LANGUAGES)('times of day say which time zone they are in, in %s', async (locale) => {
     vi.useFakeTimers({ now: new Date('2026-11-24T20:05:00Z'), toFake: ['Date'] });
     try {
       await setLocale(locale);
       renderScreen('/lots/CF-26-0426');
       await screen.findByTestId('haccp-summary');
-      await waitFor(() => expect(screen.getAllByTestId('checked-at')[0]?.textContent).toMatch(new RegExp(`${zone}$`)));
+      await waitFor(() => expect(screen.getAllByTestId('checked-at')[0]?.textContent).toMatch(new RegExp(`${zoneLabel[locale]}$`)));
     } finally {
       vi.useRealTimers();
     }

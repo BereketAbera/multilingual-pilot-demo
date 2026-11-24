@@ -1,8 +1,9 @@
 import { ClipboardList, Menu, PackageSearch, SquarePen, X } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
+import markUrl from '../assets/brand/mark.svg';
 import { Msg, useI18n, useReview } from '../i18n';
-import { usePlant } from '../lib/plant';
+import { usePlantState } from '../lib/plant';
 import { APP_NAME } from '../lib/usePageTitle';
 import { ErrorBoundary } from './ErrorBoundary';
 import { LanguageSelector } from './LanguageSelector';
@@ -29,8 +30,15 @@ function NavItem({ to, icon, children, onNavigate }: { to: string; icon: ReactNo
 
 function PlantInfo({ className = '' }: { className?: string }) {
   const i18n = useI18n();
-  const plant = usePlant();
-  if (!plant) return null;
+  const { plant, error } = usePlantState();
+  if (!plant) {
+    // Still loading: nothing yet. Failed: say so here, quietly. A screen that needs the settings shows the error and a retry.
+    return error ? (
+      <p className={`text-sm text-muted ${className}`} data-testid="plant-unavailable">
+        <Msg id="common:header.plantUnavailable" />
+      </p>
+    ) : null;
+  }
   const units = [i18n.unit(plant.units.mass), i18n.unit(plant.units.temperature)].join(', ');
   return (
     <p className={`text-sm text-muted ${className}`}>
@@ -117,10 +125,14 @@ export function Shell() {
           >
             {menuOpen ? <X aria-hidden="true" className={iconClass} /> : <Menu aria-hidden="true" className={iconClass} />}
           </button>
-          <Link to="/" className="flex min-w-0 flex-wrap items-baseline gap-x-3 rounded-sm">
-            <span className="text-lg font-semibold tracking-tight">{APP_NAME}</span>
-            <span className="hidden text-sm text-muted lg:inline">
-              <Msg id="common:app.tagline" />
+          <Link to="/" className="flex min-w-0 items-center gap-2.5 rounded-sm">
+            {/* The mark is a tally of five. It is decoration beside the name, and the narrowest phones have no room for it. */}
+            <img src={markUrl} alt="" width={28} height={24} className="hidden shrink-0 sm:block" />
+            <span className="flex min-w-0 flex-wrap items-baseline gap-x-3">
+              <span className="text-lg font-semibold tracking-tight">{APP_NAME}</span>
+              <span className="hidden text-sm text-muted lg:inline">
+                <Msg id="common:app.tagline" />
+              </span>
             </span>
           </Link>
           <PlantInfo className="ml-4 hidden border-l border-line pl-4 xl:block" />
