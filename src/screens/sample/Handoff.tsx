@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { BackendMessagePaths } from '../../components/sample/BackendMessagePaths';
 import { Code, SampleNote } from '../../components/sample/SampleChrome';
 import { ScrollArea } from '../../components/ui';
 import { usePageTitle } from '../../lib/usePageTitle';
@@ -299,7 +300,8 @@ export default function Handoff() {
         <Steps>
           <li>
             Add one entry to <Code>src/i18n/config.ts</Code>: the code, the language’s name in that language, the region used
-            for dates and numbers, and the value to send as <Code>Accept-Language</Code>.
+            for dates and numbers, and the value to send as <Code>Accept-Language</Code>. The API has to know that value too:
+            here it is the list in <Code>api/_lib/culture.ts</Code>, in your app the API’s supported cultures.
           </li>
           <li>
             Add the folder <Code>src/i18n/locales/&lt;code&gt;/</Code> with one file per screen. For a real language these are the
@@ -311,9 +313,12 @@ export default function Handoff() {
             English one, and it lists what is not translated yet. Those strings show in English until the files catch up.
           </li>
           <li>
-            Add the language to the tests in three places: its code in <Code>tests/locales.ts</Code>, which the screen tests and
-            the browser tests both read; a row of expected formats in <Code>tests/unit/format.test.ts</Code>; and a row of
-            expected text in <Code>e2e/locale.spec.ts</Code>. The type check fails until both rows exist.
+            Add the language to the tests. Its code goes in <Code>tests/locales.ts</Code>, which the screen tests and the
+            browser tests both read. The type check then fails until the language has a row in each of ten tables, and it
+            names every one: the expected formats in <Code>tests/unit/format.test.ts</Code>, the expected text in{' '}
+            <Code>e2e/locale.spec.ts</Code>, and eight in <Code>tests/component/screens.test.tsx</Code> (the two typed
+            numbers, the order counts, what a lot on hold shows, the repeated quantity, the lot-on-hold message, the exact
+            echo and the time zone label). Every other test picks the language up from that one list.
           </li>
           <li>
             Check it in the running app, then run <Code>pnpm i18n:check --strict</Code> before the release so nothing ships in
@@ -379,6 +384,7 @@ export default function Handoff() {
             translation store and one fallback: when the client has no text for a code, or the response leaves out a value the text
             needs, the user sees the server’s English <Code>detail</Code> and the code is listed on Translation status.
           </p>
+          <BackendMessagePaths />
           <p>
             <strong className="font-semibold">On the .NET side.</strong> In ASP.NET Core the code and its values travel as extension
             members of the problem response (<Code>ProblemDetails.Extensions</Code>) and can be added in one place with{' '}
@@ -568,7 +574,8 @@ export default function Handoff() {
           <li>
             <Code>tests/component/screens.test.tsx</Code>: each pilot screen rendered in each language, with no raw key and no
             unfilled placeholder on it; the fallback marked where a translation is missing; the form repeating a typed number
-            exactly; and what the form does with an answer that has no code, a missing value or the wrong shape.
+            exactly, and only a number it would accept; and what the form does with an answer that has no code, a missing
+            value or the wrong shape.
           </li>
           <li>
             <Code>e2e/locale.spec.ts</Code>: in a browser, once per language: switch language, read a date and a number, submit the
