@@ -1,4 +1,3 @@
-import { ArrowRight } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { Code, SampleNote } from '../../components/sample/SampleChrome';
@@ -10,19 +9,32 @@ import { usePageTitle } from '../../lib/usePageTitle';
 
 const LANGUAGES = LOCALES.filter((locale) => !locale.developer);
 
-function Try({ step, title, to, children }: { step: number; title: string; to: string; children: ReactNode }) {
+/** Where a step sends the reader. The link is named for the screen it opens, in the menu's own words. */
+type Place = [label: string, to: string];
+
+/**
+ * One step of the checklist: its number, what to do, what to look for, and where. On a wide
+ * screen the links sit in their own column, so the list reads across like a test script. A link
+ * is 44px tall at every width; in the wide layout that height reaches into the row's own
+ * padding, which keeps the link on the title's line.
+ */
+function Try({ step, title, places, children }: { step: number; title: string; places: Place[]; children: ReactNode }) {
   return (
-    <li className="flex gap-3 rounded-lg border border-line bg-white p-4">
-      <span aria-hidden="true" className="flex size-7 shrink-0 items-center justify-center rounded-full bg-action-tint font-semibold text-action">
+    <li className="grid grid-cols-[1.25rem_minmax(0,1fr)] gap-x-3 px-4 pb-1 pt-3 lg:grid-cols-[1.25rem_minmax(0,1fr)_13.5rem] lg:gap-x-4 lg:py-3">
+      <span aria-hidden="true" className="font-mono text-sm leading-[1.6] text-muted">
         {step}
       </span>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <h3 className="text-base">{title}</h3>
-        <p className="mt-1 text-muted">{children}</p>
-        <Link to={to} className="mt-auto inline-flex min-h-11 items-center gap-1 self-start pt-1 font-medium text-action underline underline-offset-2">
-          Open it <ArrowRight aria-hidden="true" className="size-4" />
-        </Link>
+      <div className="min-w-0">
+        <h3 className="text-[0.9375rem] font-medium">{title}</h3>
+        <p className="mt-0.5 text-muted">{children}</p>
       </div>
+      <p className="col-start-2 flex flex-wrap gap-x-5 lg:col-start-3 lg:-my-3 lg:self-start">
+        {places.map(([label, to]) => (
+          <Link key={to} to={to} className="inline-flex min-h-11 items-center font-medium text-action underline underline-offset-2">
+            {label}
+          </Link>
+        ))}
+      </p>
     </li>
   );
 }
@@ -132,61 +144,63 @@ export default function Home() {
       <FormatTable />
 
       <h2 className="mb-3 mt-8 text-lg">Eight things to try</h2>
-      <ol className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <Try step={1} title="Switch the language, top right" to="/orders">
+      <ol className="divide-y divide-line rounded-lg border border-line bg-white" data-testid="try-list">
+        <Try step={1} title="Switch the language, top right" places={[['Production orders', '/orders']]}>
           Each language is named in its own language. The choice is saved and goes to the API as <Code>Accept-Language</Code>.
         </Try>
-        <Try step={2} title="Read a date and a number" to="/orders">
+        <Try step={2} title="Read a date and a number" places={[['Production orders', '/orders']]}>
           The month is a word and only the separators change. Product and supplier names are data and stay as entered; one
           product is in Spanish.
         </Try>
-        <Try step={3} title="Open a lot that is on hold" to="/lots/CF-26-0426">
+        <Try step={3} title="Open a lot that is on hold" places={[['Lot CF-26-0426', '/lots/CF-26-0426']]}>
           A failed check, no shipments, a history in relative time. Times of day carry the plant’s time zone.
         </Try>
-        <Try step={4} title="Type a number your way" to="/record-output">
+        <Try step={4} title="Type a number your way" places={[['Record output', '/record-output']]}>
           Type 1.250,5 in Portuguese or 1,250.5 in English. The form repeats the number exactly and sends a JSON number.
         </Try>
-        <Try step={5} title="Let the server say no" to="/record-output">
+        <Try step={5} title="Let the server say no" places={[['Record output', '/record-output']]}>
           Press “Lot on hold” above the form. The API sends a code, the client translates it, and the raw response is beside it.
         </Try>
-        <Try step={6} title="See what a missing translation looks like" to="/orders">
-          Five Portuguese strings are left in English on purpose, underlined. “Mark fallbacks” in the header, or in the menu
-          on a phone, hides the underline.
+        <Try step={6} title="See what a missing translation looks like" places={[['Production orders', '/orders']]}>
+          Choose Português (Brasil): five strings are left in English on purpose, underlined. “Mark fallbacks” in the header,
+          or in the menu on a phone, hides the underline.
         </Try>
-        <Try step={7} title="Switch to the pseudo-locale" to="/receiving">
+        <Try step={7} title="Switch to the pseudo-locale" places={[['Receiving', '/receiving']]}>
           Under Developer in the selector: a made-up language used to spot text that was missed and layouts that break when
           words get longer.
         </Try>
-        <Try step={8} title="Read the status page and the handoff" to="/translation-status">
+        <Try
+          step={8}
+          title="Read the status page and the handoff"
+          places={[
+            ['Translation status', '/translation-status'],
+            ['Handoff', '/handoff'],
+          ]}
+        >
           What is translated, missing and unused; and the steps to add a language, enable a screen and check it in staging.
         </Try>
       </ol>
 
       <h2 className="mb-3 mt-8 text-lg">What is real here, and what is a stand-in</h2>
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-        <div className="rounded-lg border border-line bg-white p-4">
-          <h3 className="text-base">Real</h3>
-          <p className="mt-1 text-muted">
-            The React setup: one small module in front of the i18n library, one translation file per screen, the English fallback,
-            the formatting helpers, the number parser, the checks that run in the build and the tests.
-          </p>
-        </div>
-        <div className="rounded-lg border border-line bg-white p-4">
-          <h3 className="text-base">Stand-in</h3>
-          <p className="mt-1 text-muted">
-            The API: a few serverless functions that answer the way an ASP.NET Core API would; no .NET code was written. The
-            Spanish and Portuguese text: written for this sample from a glossary and not reviewed by a native speaker, where
-            yours would come from your translators. All of the data.
-          </p>
-        </div>
-        <div className="rounded-lg border border-line bg-white p-4">
-          <h3 className="text-base">What the real milestone adds</h3>
-          <p className="mt-1 text-muted">
-            The same work inside your codebase, with the localization approach it already has: a string inventory of the agreed
-            screens, the checks in your Azure DevOps pipeline, the backend messages those screens can show, and a staging pass
-            in three languages. <Link to="/handoff" className="text-action underline underline-offset-2">More on the Handoff page.</Link>
-          </p>
-        </div>
+      <div className="space-y-3 rounded-lg border border-line bg-white p-4">
+        <p>
+          <strong className="font-semibold">Real.</strong> The React setup: one small module in front of the i18n library, one
+          translation file per screen, the English fallback, the formatting helpers, the number parser, the checks that run in
+          the build and the tests.
+        </p>
+        <p>
+          <strong className="font-semibold">Stand-in.</strong> The API: a few serverless functions that answer the way an
+          ASP.NET Core API would; no .NET code was written. The Spanish and Portuguese text: written for this sample from a
+          glossary and not reviewed by a native speaker, where yours would come from your translators. All of the data.
+        </p>
+        <p>
+          <strong className="font-semibold">What the real milestone adds.</strong> The same work inside your codebase, with
+          the localization approach it already has: a string inventory of the agreed screens, the checks in your Azure DevOps
+          pipeline, the backend messages those screens can show, and a staging pass in three languages.{' '}
+          <Link to="/handoff" className="text-action underline underline-offset-2">
+            More on the Handoff page.
+          </Link>
+        </p>
       </div>
     </div>
   );
