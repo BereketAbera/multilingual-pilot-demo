@@ -1,9 +1,10 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { LANGUAGES, PSEUDO, chooseLanguage, openIn } from './helpers';
+import { BEST_BEFORE, LANGUAGES, PSEUDO, chooseDate, chooseLanguage, openIn } from './helpers';
 
 const PAGES = ['/', '/orders', '/lots/CF-26-0412', '/lots/CF-26-0426', '/record-output', '/receiving', '/translation-status', '/handoff'];
-const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
+// WCAG A and AA, plus axe's best-practice rules: unique landmarks, all content inside one, and so on.
+const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'];
 
 async function settle(page: Page, path: string) {
   if (path === '/orders') await expect(page.getByTestId('order-PO-26-1184')).toBeVisible();
@@ -42,10 +43,39 @@ test('accessibility: the form with validation errors and a server message, in Po
 
   await page.locator('select[name="orderNo"]').selectOption('PO-26-1185');
   await page.locator('input[name="quantity"]').fill('10');
-  await page.locator('input[name="bestBeforeDate"]').fill('2099-01-01');
+  await chooseDate(page, 'bestBeforeDate', BEST_BEFORE);
   await page.locator('input[name="temperature"]').fill('80');
   await page.locator('button[type="submit"]').click();
   await expect(page.getByTestId('server-message')).toBeVisible();
+  await expectNoViolations(page);
+});
+
+test.describe('accessibility on a phone, where tables become lists', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+  for (const code of ['es', 'pt-BR']) {
+    for (const path of ['/', '/orders', '/lots/CF-26-0426', '/record-output']) {
+      test(`${path} in ${code}`, async ({ page }) => {
+        await openIn(page, path, code);
+        await settle(page, path);
+        await expectNoViolations(page);
+      });
+    }
+  }
+});
+
+test('accessibility: a lot that does not exist, and a saved record', async ({ page }) => {
+  await openIn(page, '/lots/CF-00-0000', 'es');
+  await expect(page.getByTestId('load-error')).toBeVisible();
+  await expectNoViolations(page);
+
+  await page.goto('/record-output');
+  await settle(page, '/record-output');
+  await page.locator('select[name="orderNo"]').selectOption('PO-26-1186');
+  await page.locator('input[name="quantity"]').fill('120.5');
+  await chooseDate(page, 'bestBeforeDate', BEST_BEFORE);
+  await page.locator('input[name="temperature"]').fill('88.5');
+  await page.locator('button[type="submit"]').click();
+  await expect(page.getByTestId('success')).toBeVisible();
   await expectNoViolations(page);
 });
 

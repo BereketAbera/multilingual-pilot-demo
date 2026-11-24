@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { chooseLanguage } from './helpers';
+import { BEST_BEFORE, chooseDate, chooseLanguage } from './helpers';
 
-const DIR = process.env.SCREENS_DIR ?? '/Users/bek/dev/pr/upwork-sprint/demos/screens';
+// Screenshots go to ./screens (git-ignored) unless SCREENS_DIR says otherwise.
+const DIR = process.env.SCREENS_DIR ?? './screens';
 const shot = (name: string) => `${DIR}/multilingual-pilot-${name}.png`;
 
 test.beforeEach(async ({ page }) => {
@@ -40,7 +41,7 @@ test('server message in Brazilian Portuguese', async ({ page }) => {
   await page.locator('select[name="orderNo"]').selectOption('PO-26-1185');
   await page.locator('input[name="quantity"]').fill('1.250,5');
   await page.locator('input[name="shrink"]').fill('12,5');
-  await page.locator('input[name="bestBeforeDate"]').fill('2027-03-15');
+  await chooseDate(page, 'bestBeforeDate', BEST_BEFORE);
   await page.locator('input[name="temperature"]').fill('88,5');
   await page.getByRole('button', { name: 'Registrar produção' }).click();
   await expect(page.getByTestId('server-message')).toBeVisible();
@@ -81,7 +82,7 @@ test('form on a phone', async ({ page }) => {
   await chooseLanguage(page, 'es');
   await page.locator('select[name="orderNo"]').selectOption('PO-26-1184');
   await page.locator('input[name="quantity"]').fill('250.5');
-  await page.locator('input[name="bestBeforeDate"]').fill('2027-02-20');
+  await chooseDate(page, 'bestBeforeDate', BEST_BEFORE);
   await page.locator('input[name="temperature"]').fill('abc');
   await page.getByRole('button', { name: 'Registrar producción' }).click();
   await expect(page.getByTestId('validation-summary')).toBeVisible();
