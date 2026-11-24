@@ -1,0 +1,10 @@
+{
+  "order.not_found": "A ordem de produção {{orderNo}} não foi encontrada ou não está mais aberta.",
+  "lot.not_found": "O lote {{lotCode}} não foi encontrado.",
+  "lot.on_hold": "O lote {{lotCode}} está retido. Não é possível registrar produção até que o controle de qualidade o libere.",
+  "output.exceeds_planned": "Com este registro a ordem chega a {{total}}, mais de {{tolerance}} acima dos {{planned}} planejados. Confira a quantidade ou peça a um supervisor para ajustar a ordem.",
+  "validation.failed": "Alguns campos não foram aceitos. Confira os campos marcados e tente novamente.",
+  "validation.required": "Este campo é obrigatório.",
+  "validation.invalid_format": "Este valor não está no formato esperado.",
+  "validation.out_of_range": "Digite um valor entre {{min}} e {{max}}."
+}

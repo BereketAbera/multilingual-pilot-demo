@@ -1,0 +1,10 @@
+{
+  "order.not_found": "Production order {{orderNo}} was not found or is no longer open.",
+  "lot.not_found": "Lot {{lotCode}} was not found.",
+  "lot.on_hold": "Lot {{lotCode}} is on hold. Output cannot be recorded until quality control releases it.",
+  "output.exceeds_planned": "With this entry the order reaches {{total}}, more than {{tolerance}} over the planned {{planned}}. Check the quantity or ask a supervisor to adjust the order.",
+  "validation.failed": "Some fields were not accepted. Check the marked fields and try again.",
+  "validation.required": "This field is required.",
+  "validation.invalid_format": "This value is not in the expected format.",
+  "validation.out_of_range": "Enter a value between {{min}} and {{max}}."
+}

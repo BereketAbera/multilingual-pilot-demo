@@ -1,0 +1,39 @@
+// Every code this API can send in a problem response, and the values that travel with it.
+// contracts/api-error-codes.json mirrors this list; a test keeps the two in step.
+// In the real project the .NET API would export that JSON file as part of its build.
+
+export type ValueKind = 'string' | 'number' | 'quantity' | 'percent' | 'date';
+
+export interface ErrorCodeSpec {
+  code: string;
+  status: number;
+  title: string;
+  values: Record<string, ValueKind>;
+}
+
+export const ERROR_CODES: readonly ErrorCodeSpec[] = [
+  { code: 'order.not_found', status: 404, title: 'Order not found', values: { orderNo: 'string' } },
+  { code: 'lot.not_found', status: 404, title: 'Lot not found', values: { lotCode: 'string' } },
+  { code: 'lot.on_hold', status: 409, title: 'Lot is on hold', values: { lotCode: 'string' } },
+  {
+    code: 'line.changeover_in_progress',
+    status: 409,
+    title: 'Line changeover in progress',
+    values: { line: 'number' },
+  },
+  {
+    code: 'output.exceeds_planned',
+    status: 422,
+    title: 'Output exceeds the planned quantity',
+    values: { total: 'quantity', planned: 'quantity', tolerance: 'percent' },
+  },
+  { code: 'validation.failed', status: 400, title: 'One or more validation errors occurred.', values: {} },
+  { code: 'validation.required', status: 400, title: 'Field is required', values: {} },
+  { code: 'validation.invalid_format', status: 400, title: 'Field has the wrong format', values: {} },
+  {
+    code: 'validation.out_of_range',
+    status: 400,
+    title: 'Field is out of range',
+    values: { min: 'number', max: 'number' },
+  },
+];
