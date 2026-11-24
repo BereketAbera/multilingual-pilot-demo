@@ -1,5 +1,7 @@
-// Checks over the translation files themselves. Nothing here depends on the i18n library:
-// the input is one JSON file per screen per language, the output is a report.
+// Checks over the translation files themselves: one JSON file per screen per language in,
+// a report out. The i18n library is not loaded, but its file format is assumed: i18next's
+// {{name}} placeholders and plural keys ending in _one, _other and so on. With FormatJS or
+// Lingui these checks come from the library's own commands; the Handoff page lists them.
 //
 // Hard failures (always fail the build):
 //   - a key used in the code that English does not have
@@ -183,7 +185,7 @@ export function buildReport({ catalogs, usedKeys, apiCodes }) {
   for (const locale of Object.keys(catalogs).sort()) {
     if (locale === SOURCE_LOCALE) continue;
     const catalog = catalogs[locale];
-    const generated = locale === PSEUDO_LOCALE;
+    const pseudo = locale === PSEUDO_LOCALE;
     const missing = [];
     const extra = [];
     const placeholderMismatches = [];
@@ -232,7 +234,7 @@ export function buildReport({ catalogs, usedKeys, apiCodes }) {
     for (const namespace of Object.keys(catalog)) {
       if (!namespaces.includes(namespace)) errors.push(`${locale}/${namespace}.json has no ${SOURCE_LOCALE} file`);
     }
-    locales.push({ locale, generated, total, translated, missing, extra, placeholderMismatches });
+    locales.push({ locale, pseudo, total, translated, missing, extra, placeholderMismatches });
   }
 
   // Backend codes against the client's texts.
@@ -262,11 +264,11 @@ export function buildReport({ catalogs, usedKeys, apiCodes }) {
     errors.push(`${SOURCE_LOCALE}/${BACKEND_NAMESPACE}.json has "${key}", which is not a code the API can send`);
   }
 
-  // The pseudo-locale is generated, so it must match what the generator would write today.
+  // The pseudo-locale is written by a script, so it must match what the script would write today.
   const pseudoInSync = catalogs[PSEUDO_LOCALE] !== undefined && sameJson(catalogs[PSEUDO_LOCALE], buildPseudoCatalog(source));
   if (!pseudoInSync) errors.push(`${PSEUDO_LOCALE} is out of date: run "pnpm i18n:pseudo"`);
 
-  const untranslated = locales.filter((entry) => !entry.generated).reduce((sum, entry) => sum + entry.missing.length, 0);
+  const untranslated = locales.filter((entry) => !entry.pseudo).reduce((sum, entry) => sum + entry.missing.length, 0);
 
   return {
     sourceLocale: SOURCE_LOCALE,
@@ -279,6 +281,7 @@ export function buildReport({ catalogs, usedKeys, apiCodes }) {
     backend,
     pseudoInSync,
     errors,
+    untranslated,
     softCount: untranslated + backend.withoutText.length,
   };
 }
@@ -296,7 +299,7 @@ export function formatReport(report, { strict = false } = {}) {
   lines.push(`Source: ${report.sourceLocale}, ${report.total} messages in ${report.namespaces.length} files`);
   lines.push('');
   for (const entry of report.locales) {
-    const label = entry.generated ? `${entry.locale} (generated)` : entry.locale;
+    const label = entry.pseudo ? `${entry.locale} (built by pnpm i18n:pseudo)` : entry.locale;
     lines.push(`${label}: ${entry.translated} of ${entry.total} translated`);
     for (const item of entry.missing) {
       const forms = item.forms.length > 0 ? ` (plural forms missing: ${item.forms.join(', ')})` : '';
@@ -319,17 +322,26 @@ export function formatReport(report, { strict = false } = {}) {
     for (const error of report.errors) lines.push(`  ${error}`);
     lines.push('');
   }
-  const code = exitCode(report, { strict });
-  if (report.errors.length > 0) {
-    lines.push(`FAILED: ${report.errors.length} error${report.errors.length === 1 ? '' : 's'}.`);
-  } else if (code === 1) {
-    lines.push(`FAILED (strict): ${report.softCount} message${report.softCount === 1 ? '' : 's'} would fall back.`);
-  } else if (report.softCount > 0) {
-    lines.push(`PASSED: no errors. ${report.softCount} message${report.softCount === 1 ? '' : 's'} will fall back; --strict makes that a failure.`);
-  } else {
-    lines.push('PASSED: no errors, nothing falls back.');
-  }
+  lines.push(verdict(report, { strict }));
   return lines.join('\n');
+}
+
+const counted = (count, word) => `${count} ${word}${count === 1 ? '' : 's'}`;
+
+/** What falls back, in words: "5 strings and 1 backend code". The two are counted apart because they are fixed in different places. */
+export function fallbackSummary(report) {
+  const parts = [];
+  if (report.untranslated > 0) parts.push(counted(report.untranslated, 'string'));
+  if (report.backend.withoutText.length > 0) parts.push(counted(report.backend.withoutText.length, 'backend code'));
+  return parts.join(' and ');
+}
+
+/** The last line the command prints. */
+export function verdict(report, { strict = false } = {}) {
+  if (report.errors.length > 0) return `FAILED: ${counted(report.errors.length, 'error')}.`;
+  if (report.softCount === 0) return 'PASSED: no errors, nothing falls back.';
+  if (strict) return `FAILED (strict): ${fallbackSummary(report)} would fall back.`;
+  return `PASSED: no errors. ${fallbackSummary(report)} will fall back; --strict makes that a failure.`;
 }
 
 /** Loads everything from a project folder and builds the report. */

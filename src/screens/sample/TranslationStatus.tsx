@@ -1,7 +1,8 @@
 import { Check, CircleAlert } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
-import { output, report, strictOutput } from 'virtual:i18n-report';
+import { check, fallbackSummary, report, strictCheck } from 'virtual:i18n-report';
 import { Code, SampleNote } from '../../components/sample/SampleChrome';
+import { ScrollArea } from '../../components/ui';
 import { LOCALES } from '../../i18n';
 import { readUnknownCodes } from '../../lib/unknownCodes';
 import { usePageTitle } from '../../lib/usePageTitle';
@@ -16,6 +17,26 @@ const SCREENS: Record<string, string> = {
 
 function label(code: string): string {
   return LOCALES.find((locale) => locale.code === code)?.label ?? code;
+}
+
+/** One run of the command: what it printed, and its last line pulled out so pass or fail is read at a glance. */
+function Run({ command, run }: { command: string; run: typeof check }) {
+  const passed = run.exitCode === 0;
+  return (
+    <div className="overflow-hidden rounded-lg border border-line bg-white" data-testid={passed ? 'run-passed' : 'run-failed'}>
+      <p className="border-b border-line px-3 py-2 font-mono text-sm">{command}</p>
+      <p className={`flex items-start gap-2 border-b px-3 py-2 font-medium ${passed ? 'border-ok bg-ok-tint text-ok' : 'border-bad bg-bad-tint text-bad'}`}>
+        {passed ? <Check aria-hidden="true" className="mt-0.5 size-5 shrink-0" /> : <CircleAlert aria-hidden="true" className="mt-0.5 size-5 shrink-0" />}
+        <span>
+          {passed ? 'Passed, exit code 0. ' : 'Failed, exit code 1. '}
+          <span className="font-normal">{run.verdict.replace(/^(PASSED|FAILED)[^:]*:\s*/, '')}</span>
+        </span>
+      </p>
+      <pre tabIndex={0} aria-label={`Output of ${command}`} className="scroll-x whitespace-pre-wrap break-words p-3 font-mono text-[0.8125rem] leading-relaxed">
+        {run.text}
+      </pre>
+    </div>
+  );
 }
 
 function Pass({ ok, children }: { ok: boolean; children: ReactNode }) {
@@ -37,8 +58,8 @@ function Pass({ ok, children }: { ok: boolean; children: ReactNode }) {
 export default function TranslationStatus() {
   usePageTitle('Translation status');
   const [seen] = useState(readUnknownCodes);
-  const languages = report.locales.filter((entry) => !entry.generated);
-  const pseudo = report.locales.find((entry) => entry.generated);
+  const languages = report.locales.filter((entry) => !entry.pseudo);
+  const pseudo = report.locales.find((entry) => entry.pseudo);
   const untranslated = languages.reduce((sum, entry) => sum + entry.missing.length, 0);
   const mismatches = report.locales.reduce((sum, entry) => sum + entry.placeholderMismatches.length, 0);
   const extra = report.locales.reduce((sum, entry) => sum + entry.extra.length, 0);
@@ -47,9 +68,9 @@ export default function TranslationStatus() {
     <div className="max-w-5xl">
       <SampleNote title="Translation status">
         <p>
-          Built from the translation files when the site is built, by the same code that runs as <Code>pnpm i18n:check</Code> in the
-          pipeline. English is the source: {report.total} messages in {report.namespaces.length} files, one file per screen. A set
-          of plural forms counts as one message.
+          Built from the translation files when the site is built, by the same code that runs as <Code>pnpm i18n:check</Code> in{' '}
+          <Code>pnpm build</Code>. English is the source: {report.total} messages in {report.namespaces.length} files, one file per
+          screen. A set of plural forms counts as one message. Right now {fallbackSummary || 'nothing'} would fall back.
         </p>
       </SampleNote>
 
@@ -73,14 +94,16 @@ export default function TranslationStatus() {
                 <div className="h-2 rounded-full bg-tool" style={{ width: `${percent}%` }} />
               </div>
               <p className="mt-2 text-sm text-muted">
-                {entry.missing.length === 0 ? 'Nothing falls back.' : `${entry.missing.length} fall back to English.`}
+                {entry.missing.length === 0
+                  ? 'Nothing falls back.'
+                  : `${entry.missing.length} ${entry.missing.length === 1 ? 'string falls' : 'strings fall'} back to English.`}
               </p>
             </div>
           );
         })}
         {pseudo ? (
           <div className="rounded-lg border border-tool bg-tool-tint p-4">
-            <p className="text-sm text-tool">Generated</p>
+            <p className="text-sm text-tool">Built by script</p>
             <p className="text-lg font-semibold">Pseudo-locale</p>
             <p className="mt-2 text-2xl font-semibold tabular-nums">
               {pseudo.translated} <span className="text-base font-normal text-muted">of {pseudo.total}</span>
@@ -95,7 +118,7 @@ export default function TranslationStatus() {
         These show in English, with a dotted violet underline in review mode. They are reported, not failed, because translations
         arrive after the code. The five Portuguese strings below were left out on purpose so the fallback has something to show.
       </p>
-      <div className="scroll-x rounded-lg border border-line bg-white" tabIndex={0} role="region" aria-label="Not translated yet">
+      <ScrollArea className="overflow-hidden rounded-lg border border-line bg-white" label="Not translated yet">
         <table className="w-full min-w-[44rem] border-collapse" data-testid="missing-table">
           <thead>
             <tr className="border-b border-line">
@@ -126,7 +149,7 @@ export default function TranslationStatus() {
             ) : null}
           </tbody>
         </table>
-      </div>
+      </ScrollArea>
 
       <h2 className="mb-2 mt-8 text-lg">Messages from the API</h2>
       <p className="mb-3 max-w-3xl text-muted">
@@ -134,7 +157,7 @@ export default function TranslationStatus() {
         <Code>errors</Code> file. A code with no client text is not an error: the user sees the server’s own English text until the
         translation is added.
       </p>
-      <div className="scroll-x rounded-lg border border-line bg-white" tabIndex={0} role="region" aria-label="Messages from the API">
+      <ScrollArea className="overflow-hidden rounded-lg border border-line bg-white" label="Messages from the API">
         <table className="w-full min-w-[40rem] border-collapse" data-testid="codes-table">
           <thead>
             <tr className="border-b border-line">
@@ -163,12 +186,12 @@ export default function TranslationStatus() {
             ))}
           </tbody>
         </table>
-      </div>
+      </ScrollArea>
       <div className="mt-3 rounded-lg border border-tool bg-tool-tint p-4" data-testid="seen-codes">
         <h3 className="text-base text-tool">Codes received in this browser session with no client text</h3>
         {seen.length === 0 ? (
           <p className="mt-1 text-muted">
-            None yet. On Record output, choose order PO-26-1187 and submit; the code will be listed here.
+            None yet. On Record output, press “A code with no translation” above the form; the code will be listed here.
           </p>
         ) : (
           <ul className="mt-2 space-y-2">
@@ -194,7 +217,9 @@ export default function TranslationStatus() {
         <Pass ok={report.backend.textsWithoutCode.length === 0}>
           Every API message text belongs to a code the API can send, and uses only values it sends.
         </Pass>
-        <Pass ok={report.pseudoInSync}>The pseudo-locale matches what the generator would write today.</Pass>
+        <Pass ok={report.pseudoInSync}>
+          The pseudo-locale matches what <Code>pnpm i18n:pseudo</Code> would write today.
+        </Pass>
       </ul>
 
       <h2 className="mb-2 mt-8 text-lg">Unused keys</h2>
@@ -212,19 +237,18 @@ export default function TranslationStatus() {
       </ul>
 
       <h2 className="mb-2 mt-8 text-lg">What the command prints</h2>
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <div>
-          <p className="mb-1 font-mono text-sm">pnpm i18n:check</p>
-          <pre tabIndex={0} aria-label="Output of pnpm i18n:check" className="max-h-96 overflow-auto rounded-lg border border-line bg-white p-3 font-mono text-[0.8125rem] leading-relaxed">{output}</pre>
-        </div>
-        <div>
-          <p className="mb-1 font-mono text-sm">pnpm i18n:check --strict</p>
-          <pre tabIndex={0} aria-label="Output of pnpm i18n:check --strict" className="max-h-96 overflow-auto rounded-lg border border-line bg-white p-3 font-mono text-[0.8125rem] leading-relaxed">{strictOutput}</pre>
-        </div>
+      <p className="mb-3 max-w-3xl text-muted">
+        The two runs print the same report and end differently. The first runs on every build and passes while translations are
+        still arriving. The second is the release check: it fails while anything would fall back, here {fallbackSummary || 'nothing'}.
+        The backend code is counted apart from the strings because it is fixed in a different place, the <Code>errors</Code> file.
+      </p>
+      <div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-2" data-testid="runs">
+        <Run command="pnpm i18n:check" run={check} />
+        <Run command="pnpm i18n:check --strict" run={strictCheck} />
       </div>
       <p className="mt-3 max-w-3xl text-muted">
-        The first runs on every build and passes while translations are still arriving. The second is for the release pipeline: it
-        fails while anything would fall back.
+        Both are steps in <Code>azure-pipelines.yml</Code>, the strict one only on a release branch. That file has not been run in
+        Azure DevOps yet; the commands in it are the ones run here before every commit.
       </p>
     </div>
   );

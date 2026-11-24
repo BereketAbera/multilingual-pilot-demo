@@ -3,7 +3,7 @@
 // status page and "pnpm i18n:check" can never disagree.
 
 import type { Plugin } from 'vite';
-import { formatReport, reportForProject } from '../scripts/lib/catalog.mjs';
+import { exitCode, fallbackSummary, formatReport, reportForProject, verdict } from '../scripts/lib/catalog.mjs';
 
 const ID = 'virtual:i18n-report';
 const RESOLVED = `\0${ID}`;
@@ -21,10 +21,16 @@ export function i18nReport(): Plugin {
     load(id) {
       if (id !== RESOLVED) return undefined;
       const report = reportForProject(root);
+      const run = (strict: boolean) => ({
+        text: formatReport(report, { strict }),
+        verdict: verdict(report, { strict }),
+        exitCode: exitCode(report, { strict }),
+      });
       return [
         `export const report = ${JSON.stringify(report)};`,
-        `export const output = ${JSON.stringify(formatReport(report))};`,
-        `export const strictOutput = ${JSON.stringify(formatReport(report, { strict: true }))};`,
+        `export const fallbackSummary = ${JSON.stringify(fallbackSummary(report))};`,
+        `export const check = ${JSON.stringify(run(false))};`,
+        `export const strictCheck = ${JSON.stringify(run(true))};`,
       ].join('\n');
     },
   };

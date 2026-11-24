@@ -11,7 +11,8 @@ export interface MissingItem {
 
 export interface LocaleReport {
   locale: string;
-  generated: boolean;
+  /** True for the pseudo-locale, which a script writes from the English files. */
+  pseudo: boolean;
   total: number;
   translated: number;
   missing: MissingItem[];
@@ -36,6 +37,9 @@ export interface Report {
   backend: { codes: BackendCodeReport[]; withoutText: string[]; textsWithoutCode: string[] };
   pseudoInSync: boolean;
   errors: string[];
+  /** Strings a language does not have yet, over all languages. */
+  untranslated: number;
+  /** Everything that would fall back: untranslated strings plus backend codes with no client text. */
   softCount: number;
 }
 
@@ -59,4 +63,6 @@ export function scanKeyUsage(srcDir: string, namespaces: string[]): Map<string, 
 export function buildReport(input: { catalogs: Catalogs; usedKeys: Map<string, string>; apiCodes: ApiCode[] }): Report;
 export function exitCode(report: Report, options?: { strict?: boolean }): 0 | 1;
 export function formatReport(report: Report, options?: { strict?: boolean }): string;
+export function fallbackSummary(report: Report): string;
+export function verdict(report: Report, options?: { strict?: boolean }): string;
 export function reportForProject(root: string): Report;
