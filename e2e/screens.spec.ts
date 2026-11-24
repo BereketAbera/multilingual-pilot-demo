@@ -28,10 +28,10 @@ test('orders in Brazilian Portuguese', async ({ page }) => {
 });
 
 test('lot in Spanish', async ({ page }) => {
-  await page.goto('/lots/CF-26-0426');
+  await page.goto('/lots/CF-26-0412');
   await chooseLanguage(page, 'es');
   await expect(page.getByTestId('haccp-summary')).toBeVisible();
-  await page.screenshot({ path: shot('lot-es-desktop'), fullPage: true });
+  await page.screenshot({ path: shot('lot-es-desktop') });
 });
 
 test('server message in Brazilian Portuguese', async ({ page }) => {
@@ -44,8 +44,11 @@ test('server message in Brazilian Portuguese', async ({ page }) => {
   await page.locator('input[name="temperature"]').fill('88,5');
   await page.getByRole('button', { name: 'Registrar produção' }).click();
   await expect(page.getByTestId('server-message')).toBeVisible();
-  await page.getByTestId('server-message').scrollIntoViewIfNeeded();
-  await page.screenshot({ path: shot('form-error-ptbr-desktop'), fullPage: true });
+  // Bring the translated message and the raw response into the same view.
+  await page.getByTestId('server-message').evaluate((message) => {
+    window.scrollBy(0, message.getBoundingClientRect().bottom - window.innerHeight + 100);
+  });
+  await page.screenshot({ path: shot('form-error-ptbr-desktop') });
 });
 
 test('translation status', async ({ page }) => {
@@ -82,5 +85,7 @@ test('form on a phone', async ({ page }) => {
   await page.locator('input[name="temperature"]').fill('abc');
   await page.getByRole('button', { name: 'Registrar producción' }).click();
   await expect(page.getByTestId('validation-summary')).toBeVisible();
+  // Focus moved to the first invalid field; go back to the top so the header sits where it belongs.
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: shot('form-phone'), fullPage: true });
 });
