@@ -1,11 +1,12 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { LotStatusChip, ResultChip } from '../../components/status';
-import { LoadError, Loading, NoValue, PageHeader, Panel } from '../../components/ui';
+import { LoadError, Loading, NoValue, PageHeader, Panel, ScrollArea } from '../../components/ui';
 import { Msg, useI18n, type I18n, type MessageKey } from '../../i18n';
-import type { CheckCode, HaccpCheck, Lot as LotData, LotEvent, LotEventType, LotSummary } from '../../lib/api';
+import { ApiProblem, type CheckCode, type HaccpCheck, type Lot as LotData, type LotEvent, type LotEventType, type LotSummary } from '../../lib/api';
 import { usePlant } from '../../lib/plant';
 import { useApi } from '../../lib/useApi';
+import { ROOM_FOR_A_WIDE_TABLE, useMediaQuery } from '../../lib/useMediaQuery';
 import { usePageTitle } from '../../lib/usePageTitle';
 
 export const DEFAULT_LOT = 'CF-26-0412';
@@ -60,11 +61,93 @@ function Fact({ label, children, testId }: { label: MessageKey; children: ReactN
   );
 }
 
+function CorrectiveAction({ check }: { check: HaccpCheck }) {
+  if (!check.correctiveAction) return null;
+  return (
+    <span className="mt-1 block text-sm font-normal text-muted">
+      <span className="font-medium text-ink">
+        <Msg id="lot:haccp.action.label" />
+      </span>
+      {': '}
+      <Msg id="lot:haccp.action.hold_and_reinspect" />
+    </span>
+  );
+}
+
+/** Where there is room. The result comes straight after the check's name, so pass or fail is the first thing read. */
+function HaccpTable({ checks, zone }: { checks: HaccpCheck[]; zone: string | undefined }) {
+  const i18n = useI18n();
+  return (
+    <ScrollArea labelledBy="haccp">
+      <table className="w-full min-w-[44rem] border-collapse" data-testid="haccp-table">
+        <thead>
+          <tr className="border-b border-line">
+            <th scope="col" className="th"><Msg id="lot:haccp.col.check" /></th>
+            <th scope="col" className="th"><Msg id="lot:haccp.col.result" /></th>
+            <th scope="col" className="th"><Msg id="lot:haccp.col.limit" /></th>
+            <th scope="col" className="th"><Msg id="lot:haccp.col.reading" /></th>
+            <th scope="col" className="th"><Msg id="lot:haccp.col.checked" /></th>
+          </tr>
+        </thead>
+        <tbody>
+          {checks.map((check) => (
+            <tr key={check.check} className="border-b border-line last:border-b-0">
+              <th scope="row" className="td text-left font-medium">
+                <Msg id={CHECK_KEYS[check.check]} />
+                <CorrectiveAction check={check} />
+              </th>
+              <td className="td"><ResultChip result={check.result} /></td>
+              <td className="td whitespace-nowrap">{limitText(check, i18n)}</td>
+              <td className="td whitespace-nowrap tabular-nums">{readingText(check, i18n)}</td>
+              <td className="td whitespace-nowrap" data-testid="checked-at">{i18n.dateTime(check.checkedAt, zone)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </ScrollArea>
+  );
+}
+
+/** Where the table would not fit: one block per check, with the result beside its name. Nothing sits off to the side. */
+function HaccpCards({ checks, zone }: { checks: HaccpCheck[]; zone: string | undefined }) {
+  const i18n = useI18n();
+  return (
+    <ul className="divide-y divide-line" data-testid="haccp-cards">
+      {checks.map((check) => (
+        <li key={check.check} className="p-4">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+            <span className="font-medium">
+              <Msg id={CHECK_KEYS[check.check]} />
+            </span>
+            <ResultChip result={check.result} />
+          </div>
+          <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+            <div>
+              <dt className="text-muted"><Msg id="lot:haccp.col.limit" /></dt>
+              <dd>{limitText(check, i18n)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted"><Msg id="lot:haccp.col.reading" /></dt>
+              <dd className="tabular-nums">{readingText(check, i18n)}</dd>
+            </div>
+            <div className="col-span-2">
+              <dt className="text-muted"><Msg id="lot:haccp.col.checked" /></dt>
+              <dd data-testid="checked-at">{i18n.dateTime(check.checkedAt, zone)}</dd>
+            </div>
+          </dl>
+          <CorrectiveAction check={check} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function LotDetail({ lot }: { lot: LotData }) {
   const i18n = useI18n();
   const plant = usePlant();
   const failed = lot.checks.filter((check) => check.result === 'fail').length;
   const zone = plant?.timeZone;
+  const wide = useMediaQuery(ROOM_FOR_A_WIDE_TABLE);
 
   return (
     <div className="space-y-5">
@@ -98,7 +181,8 @@ function LotDetail({ lot }: { lot: LotData }) {
         </dl>
       </section>
 
-      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-2">
+      {/* Side by side only on a wide screen: the five-column table needs the room in Portuguese and Spanish. */}
+      <div className="grid grid-cols-1 items-start gap-5 2xl:grid-cols-2">
         <Panel
           id="trace-back"
           title={<Msg id="lot:trace.back.title" />}
@@ -107,8 +191,8 @@ function LotDetail({ lot }: { lot: LotData }) {
           <p className="px-4 pt-3 text-sm text-muted">
             <Msg id="lot:trace.back.hint" />
           </p>
-          <div className="scroll-x" tabIndex={0} role="region" aria-labelledby="trace-back">
-            <table className="w-full min-w-[34rem] border-collapse">
+          <ScrollArea labelledBy="trace-back">
+            <table className="w-full min-w-[38rem] border-collapse">
               <thead>
                 <tr className="border-b border-line">
                   <th scope="col" className="th"><Msg id="lot:trace.back.col.ingredient" /></th>
@@ -130,7 +214,7 @@ function LotDetail({ lot }: { lot: LotData }) {
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollArea>
         </Panel>
 
         <Panel
@@ -151,7 +235,7 @@ function LotDetail({ lot }: { lot: LotData }) {
               <p className="px-4 pt-3 text-sm text-muted">
                 <Msg id="lot:trace.forward.hint" />
               </p>
-              <div className="scroll-x" tabIndex={0} role="region" aria-labelledby="trace-forward">
+              <ScrollArea labelledBy="trace-forward">
                 <table className="w-full min-w-[30rem] border-collapse">
                   <thead>
                     <tr className="border-b border-line">
@@ -172,7 +256,7 @@ function LotDetail({ lot }: { lot: LotData }) {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </ScrollArea>
             </>
           )}
         </Panel>
@@ -187,51 +271,17 @@ function LotDetail({ lot }: { lot: LotData }) {
           </span>
         }
       >
-        <div className="scroll-x" tabIndex={0} role="region" aria-labelledby="haccp">
-          <table className="w-full min-w-[44rem] border-collapse">
-            <thead>
-              <tr className="border-b border-line">
-                <th scope="col" className="th"><Msg id="lot:haccp.col.check" /></th>
-                <th scope="col" className="th"><Msg id="lot:haccp.col.limit" /></th>
-                <th scope="col" className="th"><Msg id="lot:haccp.col.reading" /></th>
-                <th scope="col" className="th"><Msg id="lot:haccp.col.result" /></th>
-                <th scope="col" className="th"><Msg id="lot:haccp.col.checked" /></th>
-              </tr>
-            </thead>
-            <tbody>
-              {lot.checks.map((check) => (
-                <tr key={check.check} className="border-b border-line last:border-b-0">
-                  <th scope="row" className="td text-left font-medium">
-                    <Msg id={CHECK_KEYS[check.check]} />
-                    {check.correctiveAction ? (
-                      <span className="mt-1 block text-sm font-normal text-muted">
-                        <span className="font-medium text-ink">
-                          <Msg id="lot:haccp.action.label" />
-                        </span>
-                        {': '}
-                        <Msg id="lot:haccp.action.hold_and_reinspect" />
-                      </span>
-                    ) : null}
-                  </th>
-                  <td className="td sm:whitespace-nowrap">{limitText(check, i18n)}</td>
-                  <td className="td whitespace-nowrap tabular-nums">{readingText(check, i18n)}</td>
-                  <td className="td"><ResultChip result={check.result} /></td>
-                  <td className="td whitespace-nowrap">{i18n.dateTime(check.checkedAt, zone)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {wide ? <HaccpTable checks={lot.checks} zone={zone} /> : <HaccpCards checks={lot.checks} zone={zone} />}
       </Panel>
 
       <Panel id="events" title={<Msg id="lot:events.title" />}>
         <ol className="divide-y divide-line">
           {lot.events.map((event) => (
-            <li key={`${event.type}-${event.at}`} className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 px-4 py-3">
+            <li key={`${event.type}-${event.at}`} className="flex flex-col gap-y-0.5 px-4 py-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-x-6">
               <span>
                 <Msg id={EVENT_KEYS[event.type]} values={eventValues(event, i18n)} />
               </span>
-              <time dateTime={event.at} title={i18n.dateTime(event.at, zone)} className="text-sm text-muted" data-testid="event-time">
+              <time dateTime={event.at} title={i18n.dateTime(event.at, zone)} className="shrink-0 text-sm text-muted" data-testid="event-time">
                 {i18n.relativeTime(event.at)}
               </time>
             </li>
@@ -250,6 +300,13 @@ export default function Lot() {
   const code = params.code ?? DEFAULT_LOT;
   const list = useApi<{ lots: LotSummary[] }>('/api/lots');
   const { data, error, loading, reload } = useApi<LotData>(`/api/lots/${encodeURIComponent(code)}`);
+  const listed = list.data?.lots.some((lot) => lot.code === code) ?? false;
+  const notFound = error instanceof ApiProblem && error.problem.code === 'lot.not_found';
+
+  // The API finds "cf-26-0412" too. The address is then put right, so the picker and the heading agree.
+  useEffect(() => {
+    if (data && data.code !== code) void navigate(`/lots/${data.code}`, { replace: true });
+  }, [data, code, navigate]);
 
   return (
     <>
@@ -261,10 +318,12 @@ export default function Lot() {
         <select
           id="lot-picker"
           className="control"
-          value={list.data?.lots.some((lot) => lot.code === code) ? code : ''}
-          onChange={(event) => void navigate(`/lots/${event.target.value}`)}
+          value={listed ? code : ''}
+          onChange={(event) => {
+            if (event.target.value) void navigate(`/lots/${event.target.value}`);
+          }}
         >
-          {list.data?.lots.some((lot) => lot.code === code) ? null : <option value="">{code}</option>}
+          {listed ? null : <option value="">{code.length > 24 ? `${code.slice(0, 24)}…` : code}</option>}
           {(list.data?.lots ?? []).map((lot) => (
             <option key={lot.code} value={lot.code}>
               {`${lot.code} · ${lot.product}`}
@@ -273,14 +332,22 @@ export default function Lot() {
         </select>
       </div>
       {loading ? <Loading /> : null}
-      {error ? (
-        <div className="space-y-3">
-          <LoadError error={error} onRetry={reload} />
-          <Link className="text-action underline underline-offset-2" to={`/lots/${DEFAULT_LOT}`}>
-            <span className="font-mono">{DEFAULT_LOT}</span>
-          </Link>
-        </div>
+      {error && notFound ? (
+        // Trying again cannot find a lot that is not there; the way on is the list, or a lot that exists.
+        <LoadError error={error}>
+          <p>
+            <Msg id="lot:missing.hint" />
+          </p>
+          {code === DEFAULT_LOT ? null : (
+            <p className="mt-1">
+              <Link className="font-medium text-action underline underline-offset-2" to={`/lots/${DEFAULT_LOT}`}>
+                <Msg id="lot:missing.open" nodes={{ code: <span className="font-mono">{DEFAULT_LOT}</span> }} />
+              </Link>
+            </p>
+          )}
+        </LoadError>
       ) : null}
+      {error && !notFound ? <LoadError error={error} onRetry={reload} /> : null}
       {data ? <LotDetail lot={data} /> : null}
     </>
   );

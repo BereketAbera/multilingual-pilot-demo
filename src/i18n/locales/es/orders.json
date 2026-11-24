@@ -26,7 +26,6 @@
   "col.yield": "Rendimiento",
   "col.status": "Estado",
   "col.start": "Inicio",
-  "col.lot": "Lote",
   "col.customer": "Cliente",
   "empty.hint": "Cambie o borre los filtros para volver a ver las órdenes."
 }

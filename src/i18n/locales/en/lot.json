@@ -2,6 +2,8 @@
   "title": "Lot traceability",
   "heading": "Lot {{code}}",
   "picker.label": "Lot",
+  "missing.hint": "Choose a lot from the list above.",
+  "missing.open": "Open lot {{code}}",
   "summary.product": "Product",
   "summary.order": "Production order",
   "summary.line": "Line",

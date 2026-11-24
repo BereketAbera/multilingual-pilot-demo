@@ -2,6 +2,8 @@
   "title": "Rastreabilidade de lotes",
   "heading": "Lote {{code}}",
   "picker.label": "Lote",
+  "missing.hint": "Escolha um lote na lista acima.",
+  "missing.open": "Abrir o lote {{code}}",
   "summary.product": "Produto",
   "summary.order": "Ordem de produção",
   "summary.line": "Linha",

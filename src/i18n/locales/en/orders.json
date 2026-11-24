@@ -24,7 +24,6 @@
   "col.yield": "Yield",
   "col.status": "Status",
   "col.start": "Start",
-  "col.lot": "Lot",
   "col.customer": "Customer",
   "empty.hint": "Change or clear the filters to see orders again."
 }
