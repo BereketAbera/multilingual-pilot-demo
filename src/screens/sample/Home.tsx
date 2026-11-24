@@ -2,50 +2,87 @@ import { ArrowRight } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { Code, SampleNote } from '../../components/sample/SampleChrome';
+import { ScrollArea } from '../../components/ui';
 import { LOCALES, i18nFor, useI18n } from '../../i18n';
 import { usePlant } from '../../lib/plant';
+import { useMediaQuery } from '../../lib/useMediaQuery';
 import { usePageTitle } from '../../lib/usePageTitle';
 
 const LANGUAGES = LOCALES.filter((locale) => !locale.developer);
 
-function Try({ step, title, to, children }: { step: number; title: string; to?: string; children: ReactNode }) {
+function Try({ step, title, to, children }: { step: number; title: string; to: string; children: ReactNode }) {
   return (
     <li className="flex gap-3 rounded-lg border border-line bg-white p-4">
       <span aria-hidden="true" className="flex size-7 shrink-0 items-center justify-center rounded-full bg-action-tint font-semibold text-action">
         {step}
       </span>
-      <div className="min-w-0">
+      <div className="flex min-w-0 flex-1 flex-col">
         <h3 className="text-base">{title}</h3>
         <p className="mt-1 text-muted">{children}</p>
-        {to ? (
-          <Link to={to} className="mt-2 inline-flex min-h-11 items-center gap-1 font-medium text-action underline underline-offset-2">
-            Open it <ArrowRight aria-hidden="true" className="size-4" />
-          </Link>
-        ) : null}
+        <Link to={to} className="mt-auto inline-flex min-h-11 items-center gap-1 self-start pt-1 font-medium text-action underline underline-offset-2">
+          Open it <ArrowRight aria-hidden="true" className="size-4" />
+        </Link>
       </div>
     </li>
   );
 }
 
+type Row = [label: string, value: (i18n: ReturnType<typeof i18nFor>) => string];
+
+/** The same values through the same helper module, once per language. The selected language is tinted. */
 function FormatTable() {
   const current = useI18n();
   const plant = usePlant();
-  const today = plant?.today ?? new Date().toISOString().slice(0, 10);
+  const wide = useMediaQuery('(min-width: 1024px)');
   const [now] = useState(() => new Date());
+  // Until the plant's settings arrive, the browser's own date stands in for the plant's.
+  const today = plant?.today ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000);
-  const rows: Array<[string, (i18n: ReturnType<typeof i18nFor>) => string]> = [
+  const rows: Row[] = [
     ['Date, month as a word', (i18n) => i18n.date(today)],
+    ['Date and time, in plant time', (i18n) => i18n.dateTime(threeHoursAgo, plant?.timeZone ?? 'America/Chicago')],
     ['Number', (i18n) => i18n.number(1250.5)],
-    ['Quantity, in the plant’s unit', (i18n) => i18n.quantity(1250.5, plant?.units.mass ?? 'kilogram')],
+    ['Quantity, in this plant’s unit', (i18n) => i18n.quantity(1250.5, plant?.units.mass ?? 'kilogram')],
+    ['Quantity, for a plant set to pounds', (i18n) => i18n.quantity(1250.5, 'pound')],
     ['Temperature', (i18n) => i18n.quantity(88.5, plant?.units.temperature ?? 'celsius')],
+    ['Temperature, for a plant set to Fahrenheit', (i18n) => i18n.quantity(190, 'fahrenheit')],
     ['Percent', (i18n) => i18n.percent(0.966)],
     ['Relative time', (i18n) => i18n.relativeTime(threeHoursAgo, now)],
     ['Count of 0', (i18n) => i18n.t('lot:trace.forward.count', { count: 0 })],
     ['Count of 1', (i18n) => i18n.t('lot:trace.forward.count', { count: 1 })],
     ['Count of 3', (i18n) => i18n.t('lot:trace.forward.count', { count: 3 })],
   ];
+
+  if (!wide) {
+    // On a phone or tablet: one block per value with the three languages under each other, so nothing is off to the side.
+    return (
+      <ul className="divide-y divide-line rounded-lg border border-line bg-white" data-testid="format-table">
+        {rows.map(([label, value]) => (
+          <li key={label} className="p-4">
+            <p className="text-sm text-muted">{label}</p>
+            <dl className="mt-1 space-y-1">
+              {LANGUAGES.map((language) => {
+                const selected = language.code === current.locale;
+                return (
+                  <div key={language.code} className={`flex flex-wrap items-baseline justify-between gap-x-4 rounded px-2 py-1 ${selected ? 'bg-action-tint' : ''}`}>
+                    <dt className={`text-sm ${selected ? 'font-medium text-action' : 'text-muted'}`} lang={language.code}>
+                      {language.label}
+                    </dt>
+                    <dd className={`tabular-nums ${selected ? 'font-medium' : ''}`} lang={language.code}>
+                      {value(i18nFor(language.code))}
+                    </dd>
+                  </div>
+                );
+              })}
+            </dl>
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
   return (
-    <div className="scroll-x rounded-lg border border-line bg-white" tabIndex={0} role="region" aria-label="Formats in each language">
+    <ScrollArea className="overflow-hidden rounded-lg border border-line bg-white" label="Formats in each language">
       <table className="w-full min-w-[40rem] border-collapse" data-testid="format-table">
         <thead>
           <tr className="border-b border-line">
@@ -71,7 +108,7 @@ function FormatTable() {
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollArea>
   );
 }
 
@@ -87,45 +124,43 @@ export default function Home() {
         </p>
       </SampleNote>
 
-      <h2 className="mb-3 text-lg">Eight things to try</h2>
+      <h2 className="mb-1 text-lg">What each language does to the same values</h2>
+      <p className="mb-3 max-w-3xl text-muted">
+        Switch the language, top right, and the tinted column follows. Units belong to the plant, not to the language: the
+        number changes its separators, never its unit.
+      </p>
+      <FormatTable />
+
+      <h2 className="mb-3 mt-8 text-lg">Eight things to try</h2>
       <ol className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <Try step={1} title="Switch the language, top right">
-          Each language is named in its own language. The choice is saved, sets the page’s <Code>lang</Code> attribute and goes to
-          the API as <Code>Accept-Language</Code> on every call.
+        <Try step={1} title="Switch the language, top right" to="/orders">
+          Each language is named in its own language. The choice is saved and goes to the API as <Code>Accept-Language</Code>.
         </Try>
         <Try step={2} title="Read a date and a number" to="/orders">
-          On Production orders, dates show the month as a word, because 11/24/2026 and 24/11/2026 are the same day in two of these
-          languages. Quantities stay in the plant’s unit; only the separators change. Filter until nothing matches to see the
-          zero plural.
+          The month is a word and only the separators change. Product and supplier names are data and stay as entered; one
+          product is in Spanish.
         </Try>
         <Try step={3} title="Open a lot that is on hold" to="/lots/CF-26-0426">
-          Lot CF-26-0426 has a failed check, no shipments and a history in relative time. Statuses are an icon, a word and a
-          colour.
+          A failed check, no shipments, a history in relative time. Times of day carry the plant’s time zone.
         </Try>
         <Try step={4} title="Type a number your way" to="/record-output">
-          On Record output, type 1.250,5 in Portuguese or 1,250.5 in English or Spanish. The form repeats how it read the number
-          and the date, and sends a JSON number and an ISO date.
+          Type 1.250,5 in Portuguese or 1,250.5 in English. The form repeats the number exactly and sends a JSON number.
         </Try>
         <Try step={5} title="Let the server say no" to="/record-output">
-          Choose order PO-26-1185: its lot is on hold, a rule only the server knows. The response carries a code and the client
-          translates it; the raw response is shown beside the message. Order PO-26-1187 returns a code the client has no text for.
+          Press “Lot on hold” above the form. The API sends a code, the client translates it, and the raw response is beside it.
         </Try>
-        <Try step={6} title="See what a missing translation looks like">
-          Five Portuguese strings are left untranslated on purpose. They appear in English with a dotted violet underline. The
-          “Mark fallbacks” switch in the header turns the underline off; the English stays.
+        <Try step={6} title="See what a missing translation looks like" to="/orders">
+          Five Portuguese strings are left in English on purpose, underlined. “Mark fallbacks” in the header, or in the menu
+          on a phone, hides the underline.
         </Try>
         <Try step={7} title="Switch to the pseudo-locale" to="/receiving">
-          It sits under Developer in the language selector. Translated text turns accented and about 40% longer; Receiving, a
-          screen left un-enabled on purpose, stays in plain English.
+          Under Developer in the selector: a made-up language used to spot text that was missed and layouts that break when
+          words get longer.
         </Try>
         <Try step={8} title="Read the status page and the handoff" to="/translation-status">
-          Translation status counts what is translated, missing and unused per language. Handoff has the steps for adding a
-          language and enabling another screen.
+          What is translated, missing and unused; and the steps to add a language, enable a screen and check it in staging.
         </Try>
       </ol>
-
-      <h2 className="mb-3 mt-8 text-lg">What each language does to the same values</h2>
-      <FormatTable />
 
       <h2 className="mb-3 mt-8 text-lg">What is real here, and what is a stand-in</h2>
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
@@ -139,16 +174,17 @@ export default function Home() {
         <div className="rounded-lg border border-line bg-white p-4">
           <h3 className="text-base">Stand-in</h3>
           <p className="mt-1 text-muted">
-            The API: a few serverless functions that answer the way an ASP.NET Core API would. The Spanish and Portuguese text:
-            written for this sample from a glossary, where yours would come from your translators. All of the data.
+            The API: a few serverless functions that answer the way an ASP.NET Core API would; no .NET code was written. The
+            Spanish and Portuguese text: written for this sample from a glossary and not reviewed by a native speaker, where
+            yours would come from your translators. All of the data.
           </p>
         </div>
         <div className="rounded-lg border border-line bg-white p-4">
           <h3 className="text-base">What the real milestone adds</h3>
           <p className="mt-1 text-muted">
             The same work inside your codebase, with the localization approach it already has: a string inventory of the agreed
-            screens, the checks in your pipeline, the backend messages those screens can show, and a staging pass in three
-            languages. <Link to="/handoff" className="text-action underline underline-offset-2">More on the Handoff page.</Link>
+            screens, the checks in your Azure DevOps pipeline, the backend messages those screens can show, and a staging pass
+            in three languages. <Link to="/handoff" className="text-action underline underline-offset-2">More on the Handoff page.</Link>
           </p>
         </div>
       </div>

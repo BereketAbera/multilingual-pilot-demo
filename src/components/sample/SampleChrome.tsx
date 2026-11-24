@@ -65,13 +65,32 @@ export function SampleNav({ onNavigate }: { onNavigate: () => void }) {
 
 export function PseudoBanner() {
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-tool bg-tool-tint px-4 py-2 text-sm text-tool md:px-6" data-testid="pseudo-banner">
+    <aside
+      aria-label="About the pseudo-locale"
+      className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-tool bg-tool-tint px-4 py-2 text-sm text-tool md:px-6"
+      data-testid="pseudo-banner"
+    >
       <FlaskConical aria-hidden="true" className="size-4 shrink-0" />
       <strong className="font-semibold">Pseudo-locale</strong>
       <span>
-        Accented text in brackets comes from the translation files. Plain English is either data (product and supplier
-        names) or a string that is still hard-coded, as on Receiving.
+        A made-up language for finding text that was missed and layouts that break when words get longer. Accented text in
+        brackets comes from the translation files. Plain text is either data (product and supplier names) or a string that
+        is still hard-coded, as on Receiving.
       </span>
+    </aside>
+  );
+}
+
+/** The note at the top of the one screen left un-enabled. It lives here so the screen's own file holds only the screen. */
+export function UnenabledNote() {
+  return (
+    <div role="note" aria-label="About this screen" className="mb-5 rounded-lg border border-tool bg-tool-tint p-4 text-tool">
+      <ToolTag>not enabled, on purpose</ToolTag>
+      <p className="mt-2 max-w-3xl">
+        This screen has not been through the five steps on the Handoff page. Switch the language: nothing here changes. Under the
+        pseudo-locale it stays in plain English while the header and menu turn accented, which is how a screen that still needs
+        work is found. The date below is built by hand as month/day/year, and the quantity is glued to its unit.
+      </p>
     </div>
   );
 }
@@ -95,6 +114,15 @@ export function SampleNote({ title, children }: { title: string; children?: Reac
   );
 }
 
-export function Code({ children }: { children: ReactNode }) {
-  return <code className="rounded bg-page px-1 py-0.5 font-mono text-[0.85em]">{children}</code>;
+/**
+ * A file name, command or setting. It stays on one line from tablet width up, so "Accept-Language"
+ * is not cut at its hyphen; on a phone, and where `wrap` is set for a long command in a table,
+ * it may break anywhere rather than push the page sideways.
+ */
+export function Code({ children, wrap = false }: { children: ReactNode; wrap?: boolean }) {
+  return (
+    <code className={`rounded bg-page px-1 py-0.5 font-mono text-[0.85em] [overflow-wrap:anywhere] ${wrap ? '' : 'sm:whitespace-nowrap'}`}>
+      {children}
+    </code>
+  );
 }

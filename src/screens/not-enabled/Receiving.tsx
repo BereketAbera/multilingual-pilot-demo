@@ -2,7 +2,7 @@
 // hard-coded text, a date built by hand, a number glued to its unit, a sentence joined
 // from pieces. The Handoff page lists the five steps that would enable it.
 
-import { ToolTag } from '../../components/sample/SampleChrome';
+import { UnenabledNote } from '../../components/sample/SampleChrome';
 import { usePlant } from '../../lib/plant';
 import { usePageTitle } from '../../lib/usePageTitle';
 
@@ -22,19 +22,13 @@ function handBuiltDate(today: string, daysAgo: number): string {
 export default function Receiving() {
   usePageTitle('Receiving');
   const plant = usePlant();
+  // The fallback is the UTC date: one more thing the enabled screens no longer do by hand.
   const today = plant?.today ?? new Date().toISOString().slice(0, 10);
   const todayCount = DELIVERIES.filter((delivery) => delivery.daysAgo === 0).length;
 
   return (
     <>
-      <div className="mb-5 rounded-lg border border-tool bg-tool-tint p-4 text-tool">
-        <ToolTag>not enabled, on purpose</ToolTag>
-        <p className="mt-2 max-w-3xl">
-          This screen has not been through the five steps on the Handoff page. Switch the language: nothing here changes. Under the
-          pseudo-locale it stays in plain English while the header and menu turn accented, which is how a screen that still needs
-          work is found. The date below is built by hand as month/day/year, and the quantity is glued to its unit.
-        </p>
-      </div>
+      <UnenabledNote />
 
       <div className="mb-5">
         <h1 className="text-2xl">Receiving</h1>
