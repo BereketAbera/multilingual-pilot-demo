@@ -31,8 +31,55 @@ export class NetworkError extends Error {
 
 const SHOWN_RESPONSE_HEADERS = ['content-type', 'content-language', 'x-request-culture'];
 
-function isProblem(body: unknown): body is ProblemDetails {
-  return typeof body === 'object' && body !== null && 'status' in body && 'title' in body;
+/** What a problem's code reads as when the API sent none, as ASP.NET Core does by default. */
+export const NO_CODE = 'unknown';
+
+type Json = Record<string, unknown>;
+
+function isRecord(value: unknown): value is Json {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isProblem(body: unknown): body is Json {
+  return isRecord(body) && 'status' in body && 'title' in body;
+}
+
+const text = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
+
+/**
+ * Reads a problem response without trusting its shape. An API that has not adopted codes yet
+ * answers with a title and, for validation, an "errors" dictionary and nothing else; the user
+ * still has to see something. The text to show falls back from detail to title to the first
+ * message in "errors".
+ */
+function toProblem(body: Json, status: number): ProblemDetails {
+  const errors = isRecord(body.errors)
+    ? Object.fromEntries(
+        Object.entries(body.errors).map(([field, messages]) => [
+          field,
+          (Array.isArray(messages) ? messages : [messages]).filter((message): message is string => typeof message === 'string'),
+        ]),
+      )
+    : undefined;
+  const fieldErrors = Array.isArray(body.fieldErrors)
+    ? body.fieldErrors.flatMap((entry) =>
+        isRecord(entry) && typeof entry.field === 'string' && typeof entry.code === 'string'
+          ? [{ field: entry.field, code: entry.code, values: (isRecord(entry.values) ? entry.values : {}) as ProblemDetails['values'] }]
+          : [],
+      )
+    : undefined;
+  return {
+    type: text(body.type),
+    title: text(body.title),
+    status,
+    detail: text(body.detail) || text(body.title) || Object.values(errors ?? {}).flat()[0] || '',
+    instance: text(body.instance),
+    code: text(body.code) || NO_CODE,
+    values: (isRecord(body.values) ? body.values : {}) as ProblemDetails['values'],
+    traceId: text(body.traceId),
+    ...(errors ? { errors } : {}),
+    ...(fieldErrors ? { fieldErrors } : {}),
+  };
 }
 
 async function call<T>(method: 'GET' | 'POST', path: string, body?: unknown, signal?: AbortSignal): Promise<{ data: T; exchange: Exchange }> {
@@ -64,9 +111,7 @@ async function call<T>(method: 'GET' | 'POST', path: string, body?: unknown, sig
   };
 
   if (!response.ok) {
-    if (isProblem(parsed)) {
-      throw new ApiProblem({ ...parsed, code: parsed.code ?? 'unknown', values: parsed.values ?? {} }, exchange);
-    }
+    if (isProblem(parsed)) throw new ApiProblem(toProblem(parsed, response.status), exchange);
     throw new NetworkError();
   }
   return { data: parsed as T, exchange };
