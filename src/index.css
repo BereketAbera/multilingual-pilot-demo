@@ -1,4 +1,7 @@
-@import "tailwindcss";
+/* Class names are read from the app's own source only, so every machine builds the same stylesheet. */
+@import "tailwindcss" source(none);
+@source "../src";
+@source "../index.html";
 
 @theme {
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
