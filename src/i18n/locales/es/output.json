@@ -8,7 +8,7 @@
   "field.shrink": "Merma",
   "field.shrinkHint": "Producto perdido en la línea: derrames, recortes, muestras.",
   "field.productionDate": "Fecha de producción",
-  "field.bestBefore": "Fecha de caducidad",
+  "field.bestBefore": "Fecha de consumo preferente",
   "field.temperature": "Lectura de temperatura de cocción",
   "field.temperatureHint": "Temperatura en el centro del producto al final de la cocción.",
   "field.notes": "Notas",
@@ -27,9 +27,13 @@
   "validation.required": "Este campo es obligatorio.",
   "validation.number": "Escriba un número, por ejemplo {{example}}.",
   "validation.positive": "Escriba una cantidad mayor que cero.",
+  "validation.notNegative": "La merma no puede ser negativa.",
+  "validation.quantityRange": "Escriba una cantidad entre {{min}} y {{max}}.",
+  "validation.decimals": "Use {{max}} decimales o menos.",
+  "validation.dateRange": "Elija una fecha entre el {{min}} y el {{max}}.",
   "validation.shrinkTooHigh": "La merma no puede ser mayor que la cantidad producida.",
   "validation.dateFuture": "La fecha de producción no puede estar en el futuro.",
-  "validation.bestBeforeOrder": "La fecha de caducidad debe ser posterior a la fecha de producción.",
+  "validation.bestBeforeOrder": "La fecha de consumo preferente debe ser posterior a la fecha de producción.",
   "validation.temperatureRange": "Escriba una temperatura entre {{min}} y {{max}}.",
   "validation.notesTooLong": "Use {{max}} caracteres o menos.",
   "validation.summary_one": "{{count}} campo necesita atención",
@@ -41,5 +45,6 @@
   "success.again": "Registrar otra",
   "server.title": "El servidor no aceptó este registro",
   "server.untranslated": "Mensaje del servidor, aún sin traducir:",
-  "server.network": "No se pudo conectar con el servidor. No se guardó nada."
+  "server.network": "No se pudo conectar con el servidor. No se guardó nada.",
+  "server.unexpected": "No se pudo leer la respuesta del servidor. Revise la orden antes de registrar de nuevo."
 }

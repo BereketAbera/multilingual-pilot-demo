@@ -26,6 +26,10 @@
   "validation.required": "Este campo é obrigatório.",
   "validation.number": "Digite um número, por exemplo {{example}}.",
   "validation.positive": "Digite uma quantidade maior que zero.",
+  "validation.notNegative": "As perdas não podem ser negativas.",
+  "validation.quantityRange": "Digite uma quantidade entre {{min}} e {{max}}.",
+  "validation.decimals": "Use até {{max}} casas decimais.",
+  "validation.dateRange": "Escolha uma data entre {{min}} e {{max}}.",
   "validation.shrinkTooHigh": "As perdas não podem ser maiores que a quantidade produzida.",
   "validation.dateFuture": "A data de produção não pode estar no futuro.",
   "validation.bestBeforeOrder": "A data de validade deve ser posterior à data de produção.",
@@ -39,5 +43,6 @@
   "success.again": "Registrar outra",
   "server.title": "O servidor não aceitou este registro",
   "server.untranslated": "Mensagem do servidor, ainda sem tradução:",
-  "server.network": "Não foi possível conectar ao servidor. Nada foi salvo."
+  "server.network": "Não foi possível conectar ao servidor. Nada foi salvo.",
+  "server.unexpected": "Não foi possível ler a resposta do servidor. Confira a ordem antes de registrar de novo."
 }

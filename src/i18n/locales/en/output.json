@@ -26,6 +26,10 @@
   "validation.required": "This field is required.",
   "validation.number": "Enter a number, for example {{example}}.",
   "validation.positive": "Enter a quantity greater than zero.",
+  "validation.notNegative": "Shrink cannot be negative.",
+  "validation.quantityRange": "Enter a quantity between {{min}} and {{max}}.",
+  "validation.decimals": "Use {{max}} decimal places or fewer.",
+  "validation.dateRange": "Choose a date between {{min}} and {{max}}.",
   "validation.shrinkTooHigh": "Shrink cannot be more than the quantity produced.",
   "validation.dateFuture": "The production date cannot be in the future.",
   "validation.bestBeforeOrder": "The best-before date must be after the production date.",
@@ -39,5 +43,6 @@
   "success.again": "Record another",
   "server.title": "The server did not accept this record",
   "server.untranslated": "Message from the server, not translated yet:",
-  "server.network": "The server could not be reached. Nothing was saved."
+  "server.network": "The server could not be reached. Nothing was saved.",
+  "server.unexpected": "The answer from the server could not be read. Check the order before recording again."
 }
