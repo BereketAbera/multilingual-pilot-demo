@@ -67,5 +67,34 @@
       "min": "number",
       "max": "number"
     }
+  },
+  {
+    "code": "validation.date_out_of_range",
+    "status": 400,
+    "title": "Date is out of range",
+    "values": {
+      "min": "date",
+      "max": "date"
+    }
+  },
+  {
+    "code": "output.production_date_in_future",
+    "status": 400,
+    "title": "Production date is in the future",
+    "values": {
+      "today": "date"
+    }
+  },
+  {
+    "code": "output.best_before_not_after_production",
+    "status": 400,
+    "title": "Best-before date is not after the production date",
+    "values": {}
+  },
+  {
+    "code": "output.shrink_exceeds_quantity",
+    "status": 400,
+    "title": "Shrink exceeds the quantity produced",
+    "values": {}
   }
 ]

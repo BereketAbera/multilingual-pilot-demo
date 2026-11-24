@@ -6,5 +6,9 @@
   "validation.failed": "Algunos campos no fueron aceptados. Revise los campos marcados e intente de nuevo.",
   "validation.required": "Este campo es obligatorio.",
   "validation.invalid_format": "Este valor no tiene el formato esperado.",
-  "validation.out_of_range": "Escriba un valor entre {{min}} y {{max}}."
+  "validation.out_of_range": "Escriba un valor entre {{min}} y {{max}}.",
+  "validation.date_out_of_range": "Elija una fecha entre el {{min}} y el {{max}}.",
+  "output.production_date_in_future": "La fecha de producción no puede estar en el futuro. Hoy en la planta es {{today}}.",
+  "output.best_before_not_after_production": "La fecha de consumo preferente debe ser posterior a la fecha de producción.",
+  "output.shrink_exceeds_quantity": "La merma no puede ser mayor que la cantidad producida."
 }

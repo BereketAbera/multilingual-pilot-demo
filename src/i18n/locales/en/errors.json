@@ -6,5 +6,9 @@
   "validation.failed": "Some fields were not accepted. Check the marked fields and try again.",
   "validation.required": "This field is required.",
   "validation.invalid_format": "This value is not in the expected format.",
-  "validation.out_of_range": "Enter a value between {{min}} and {{max}}."
+  "validation.out_of_range": "Enter a value between {{min}} and {{max}}.",
+  "validation.date_out_of_range": "Enter a date between {{min}} and {{max}}.",
+  "output.production_date_in_future": "The production date cannot be in the future. Today at the plant is {{today}}.",
+  "output.best_before_not_after_production": "The best-before date must be after the production date.",
+  "output.shrink_exceeds_quantity": "Shrink cannot be more than the quantity produced."
 }

@@ -6,5 +6,9 @@
   "validation.failed": "[Šömé fíéļđš ŵéŕé ñöţ áççépţéđ. Çĥéçķ ţĥé máŕķéđ fíéļđš áñđ ţŕý áğáíñ. ~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~]",
   "validation.required": "[Ţĥíš fíéļđ íš ŕéqüíŕéđ. ~~~~~ ~~~~]",
   "validation.invalid_format": "[Ţĥíš váļüé íš ñöţ íñ ţĥé éxpéçţéđ föŕmáţ. ~~~~~ ~~~~~ ~~~~~]",
-  "validation.out_of_range": "[Éñţéŕ á váļüé béţŵééñ {{min}} áñđ {{max}}. ~~~~~ ~~~~~]"
+  "validation.out_of_range": "[Éñţéŕ á váļüé béţŵééñ {{min}} áñđ {{max}}. ~~~~~ ~~~~~]",
+  "validation.date_out_of_range": "[Éñţéŕ á đáţé béţŵééñ {{min}} áñđ {{max}}. ~~~~~ ~~~~~]",
+  "output.production_date_in_future": "[Ţĥé pŕöđüçţíöñ đáţé çáññöţ bé íñ ţĥé füţüŕé. Ţöđáý áţ ţĥé pļáñţ íš {{today}}. ~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~]",
+  "output.best_before_not_after_production": "[Ţĥé béšţ-béföŕé đáţé müšţ bé áfţéŕ ţĥé pŕöđüçţíöñ đáţé. ~~~~~ ~~~~~ ~~~~~ ~~~~]",
+  "output.shrink_exceeds_quantity": "[Šĥŕíñķ çáññöţ bé möŕé ţĥáñ ţĥé qüáñţíţý pŕöđüçéđ. ~~~~~ ~~~~~ ~~~~~ ~~]"
 }

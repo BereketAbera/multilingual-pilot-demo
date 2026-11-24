@@ -6,5 +6,9 @@
   "validation.failed": "Alguns campos não foram aceitos. Confira os campos marcados e tente novamente.",
   "validation.required": "Este campo é obrigatório.",
   "validation.invalid_format": "Este valor não está no formato esperado.",
-  "validation.out_of_range": "Digite um valor entre {{min}} e {{max}}."
+  "validation.out_of_range": "Digite um valor entre {{min}} e {{max}}.",
+  "validation.date_out_of_range": "Escolha uma data entre {{min}} e {{max}}.",
+  "output.production_date_in_future": "A data de produção não pode estar no futuro. Hoje na planta é {{today}}.",
+  "output.best_before_not_after_production": "A data de validade deve ser posterior à data de produção.",
+  "output.shrink_exceeds_quantity": "As perdas não podem ser maiores que a quantidade produzida."
 }

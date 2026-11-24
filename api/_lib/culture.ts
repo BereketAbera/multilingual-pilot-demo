@@ -1,8 +1,22 @@
-// Picks the request culture from Accept-Language, the way ASP.NET Core's
-// request localization middleware does when no query string or cookie is set.
+// Picks the request culture from Accept-Language, following the default behaviour of
+// ASP.NET Core's request localization middleware when no query string or cookie is set:
+// values in order of quality, an exact match first, then the parent culture. "es-MX"
+// falls back to "es"; a bare "pt" does not select "pt-BR", because a child is not a parent.
 
 export const SUPPORTED_CULTURES = ['en', 'es', 'pt-BR'] as const;
 export type Culture = (typeof SUPPORTED_CULTURES)[number];
+
+function match(tag: string): Culture | undefined {
+  let candidate = tag;
+  while (candidate) {
+    const found = SUPPORTED_CULTURES.find((culture) => culture.toLowerCase() === candidate);
+    if (found) return found;
+    const cut = candidate.lastIndexOf('-');
+    if (cut < 0) return undefined;
+    candidate = candidate.slice(0, cut);
+  }
+  return undefined;
+}
 
 export function resolveCulture(acceptLanguage: string | null | undefined): Culture {
   if (!acceptLanguage) return 'en';
@@ -18,11 +32,8 @@ export function resolveCulture(acceptLanguage: string | null | undefined): Cultu
     .sort((a, b) => b.weight - a.weight);
 
   for (const { tag } of wanted) {
-    const exact = SUPPORTED_CULTURES.find((c) => c.toLowerCase() === tag);
-    if (exact) return exact;
-    const primary = tag.split('-')[0];
-    const byLanguage = SUPPORTED_CULTURES.find((c) => c.toLowerCase().split('-')[0] === primary);
-    if (byLanguage) return byLanguage;
+    const found = match(tag);
+    if (found) return found;
   }
   return 'en';
 }

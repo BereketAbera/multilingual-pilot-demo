@@ -1,5 +1,6 @@
 // Fictional data for an invented producer of chilled soups, dips and sauces.
 // Dates are built from the request time so the sample always looks like "this week".
+// One product was entered in Spanish on purpose: names are data and stay as entered in every language.
 
 import type {
   HaccpCheck,
@@ -26,6 +27,10 @@ export const PLANT: Plant = {
 export const LINE_IN_CHANGEOVER = 4;
 /** How far over the planned quantity an order may run before the server refuses. */
 export const OVERRUN_TOLERANCE = 0.1;
+/** Output can be recorded for a production date up to this many days back. */
+export const MAX_BACKDATE_DAYS = 30;
+/** A best-before date further out than this is taken for a typing mistake. */
+export const MAX_SHELF_LIFE_YEARS = 5;
 
 const kg = (value: number): Quantity => ({ value, unit: 'kilogram' });
 const celsius = (value: number): Quantity => ({ value, unit: 'celsius' });
@@ -33,8 +38,31 @@ const celsius = (value: number): Quantity => ({ value, unit: 'celsius' });
 const DAY = 24 * 60 * 60 * 1000;
 const HOUR = 60 * 60 * 1000;
 
+const plantCalendar = new Intl.DateTimeFormat('en-US', {
+  timeZone: PLANT.timeZone,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+/** Moves a plain date (YYYY-MM-DD) by whole days. A plain date has no time zone, so UTC arithmetic is exact. */
+export function addDays(date: string, days: number): string {
+  return new Date(Date.parse(date) + days * DAY).toISOString().slice(0, 10);
+}
+
+/** Moves a plain date by whole years. 29 February lands on 1 March in a year without one. */
+export function addYears(date: string, years: number): string {
+  const [year = 0, month = 1, day = 1] = date.split('-').map(Number);
+  return new Date(Date.UTC(year + years, month - 1, day)).toISOString().slice(0, 10);
+}
+
+/**
+ * The plant's calendar date, read in the plant's own time zone. At 7:30 PM in Chicago the UTC
+ * date is already tomorrow; the plant's "today" is not. Day offsets are added to that date.
+ */
 export function isoDate(now: Date, offsetDays = 0): string {
-  return new Date(now.getTime() + offsetDays * DAY).toISOString().slice(0, 10);
+  const parts = Object.fromEntries(plantCalendar.formatToParts(now).map((part) => [part.type, part.value]));
+  return addDays(`${parts.year}-${parts.month}-${parts.day}`, offsetDays);
 }
 
 function instant(now: Date, hoursAgo: number): string {
@@ -60,10 +88,10 @@ const ORDER_SEEDS: OrderSeed[] = [
   { orderNo: 'PO-26-1184', product: 'Lemon herb dressing 350 ml', line: 2, planned: 1500, produced: 1250.5, yield: null, status: 'in_progress', startOffset: -1, lotCode: 'CF-26-0425' },
   { orderNo: 'PO-26-1185', product: 'Classic basil pesto 190 g', line: 3, planned: 800, produced: 412, yield: null, status: 'on_hold', startOffset: -1, lotCode: 'CF-26-0426' },
   { orderNo: 'PO-26-1186', product: 'Tomato basil soup 1 L', line: 1, planned: 2400, produced: 960, yield: null, status: 'in_progress', startOffset: 0, lotCode: 'CF-26-0427' },
-  { orderNo: 'PO-26-1187', product: 'Roasted tomato salsa 450 g', line: 4, planned: 1000, produced: 310, yield: null, status: 'in_progress', startOffset: 0, lotCode: 'CF-26-0428' },
+  { orderNo: 'PO-26-1187', product: 'Salsa roja tatemada 450 g', line: 4, planned: 1000, produced: 310, yield: null, status: 'in_progress', startOffset: 0, lotCode: 'CF-26-0428' },
   { orderNo: 'PO-26-1188', product: 'Roasted red pepper hummus 250 g', line: 2, planned: 1200, produced: null, yield: null, status: 'planned', startOffset: 1, lotCode: null },
   { orderNo: 'PO-26-1189', product: 'Classic basil pesto 190 g', line: 3, planned: 800, produced: null, yield: null, status: 'planned', startOffset: 2, lotCode: null },
-  { orderNo: 'PO-26-1190', product: 'Roasted tomato salsa 450 g', line: 4, planned: 1000, produced: null, yield: null, status: 'planned', startOffset: 3, lotCode: null },
+  { orderNo: 'PO-26-1190', product: 'Salsa roja tatemada 450 g', line: 4, planned: 1000, produced: null, yield: null, status: 'planned', startOffset: 3, lotCode: null },
 ];
 
 export function listOrders(now: Date): Order[] {
@@ -139,7 +167,7 @@ const RECIPES: Record<string, Recipe> = {
       { ingredient: 'Dried herb blend', supplier: 'Vega Dry Goods', supplierLot: 'VG-HB-5538', share: 0.15, receivedOffset: -11 },
     ],
   },
-  'Roasted tomato salsa 450 g': {
+  'Salsa roja tatemada 450 g': {
     shelfLifeDays: 60,
     cookLimit: 85,
     ingredients: [

@@ -4,8 +4,12 @@
 import { resolveCulture, type Culture } from './culture.js';
 import {
   LINE_IN_CHANGEOVER,
+  MAX_BACKDATE_DAYS,
+  MAX_SHELF_LIFE_YEARS,
   OVERRUN_TOLERANCE,
   PLANT,
+  addDays,
+  addYears,
   findLot,
   findOrder,
   isoDate,
@@ -86,8 +90,19 @@ function problem(input: ProblemInput, culture: Culture): Response {
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** A real calendar date. Date.parse alone rolls 31 February forward to March, so the value must survive a round trip. */
 function isIsoDate(value: unknown): value is string {
-  return typeof value === 'string' && ISO_DATE.test(value) && !Number.isNaN(Date.parse(value));
+  if (typeof value !== 'string' || !ISO_DATE.test(value)) return false;
+  const time = Date.parse(value);
+  return !Number.isNaN(time) && new Date(time).toISOString().slice(0, 10) === value;
+}
+
+/** A problem with no code of its own: what the framework answers before any application rule runs. */
+function plainProblem(status: number, title: string, detail: string, instance: string, culture: Culture, headers: Record<string, string> = {}): Response {
+  return new Response(JSON.stringify({ type: 'about:blank', title, status, detail, instance, traceId: traceId() }), {
+    status,
+    headers: { ...baseHeaders(culture), ...headers, 'content-type': 'application/problem+json; charset=utf-8' },
+  });
 }
 
 interface Validation {
@@ -132,7 +147,47 @@ function checkDate(validation: Validation, body: Record<string, unknown>, field:
   }
 }
 
+/** Rules that compare one field with another, or with the plant's calendar. They run once each field is well formed. */
+function checkAcrossFields(validation: Validation, body: Record<string, unknown>, today: string) {
+  const accepted = (field: string) => validation.errors[field] === undefined;
+  const { quantity, shrink, productionDate, bestBeforeDate } = body as { quantity: number; shrink: number; productionDate: string; bestBeforeDate: string };
+
+  if (accepted('quantity') && accepted('shrink') && shrink > quantity) {
+    addError(validation, 'shrink', 'output.shrink_exceeds_quantity', 'The field shrink must not be greater than quantity.');
+  }
+  if (accepted('productionDate')) {
+    const earliest = addDays(today, -MAX_BACKDATE_DAYS);
+    if (productionDate > today) {
+      addError(validation, 'productionDate', 'output.production_date_in_future', `The field productionDate must not be after ${today}.`, {
+        today: { date: today },
+      });
+    } else if (productionDate < earliest) {
+      addError(validation, 'productionDate', 'validation.date_out_of_range', `The field productionDate must be between ${earliest} and ${today}.`, {
+        min: { date: earliest },
+        max: { date: today },
+      });
+    }
+  }
+  if (accepted('productionDate') && accepted('bestBeforeDate')) {
+    const latest = addYears(productionDate, MAX_SHELF_LIFE_YEARS);
+    if (bestBeforeDate <= productionDate) {
+      addError(validation, 'bestBeforeDate', 'output.best_before_not_after_production', 'The field bestBeforeDate must be after productionDate.');
+    } else if (bestBeforeDate > latest) {
+      const first = addDays(productionDate, 1);
+      addError(validation, 'bestBeforeDate', 'validation.date_out_of_range', `The field bestBeforeDate must be between ${first} and ${latest}.`, {
+        min: { date: first },
+        max: { date: latest },
+      });
+    }
+  }
+}
+
 async function recordOutput(request: Request, culture: Culture, now: Date, instance: string): Promise<Response> {
+  const contentType = (request.headers.get('content-type') ?? '').split(';')[0]?.trim().toLowerCase();
+  if (contentType !== 'application/json') {
+    return plainProblem(415, 'Unsupported Media Type', 'Send the record as application/json.', instance, culture);
+  }
+
   let body: Record<string, unknown>;
   try {
     const parsed: unknown = await request.json();
@@ -163,6 +218,7 @@ async function recordOutput(request: Request, culture: Culture, now: Date, insta
   if (body.notes !== undefined && typeof body.notes !== 'string') {
     addError(validation, 'notes', 'validation.invalid_format', 'The JSON value could not be converted to a string. Path: $.notes.');
   }
+  checkAcrossFields(validation, body, isoDate(now));
   if (validation.fieldErrors.length > 0) {
     return problem(
       {
@@ -178,7 +234,8 @@ async function recordOutput(request: Request, culture: Culture, now: Date, insta
 
   const input = body as unknown as OutputRequest;
   const order = findOrder(now, input.orderNo);
-  if (!order || !order.lotCode) {
+  // Output is recorded against an open order: one that is running, or held and waiting for a decision.
+  if (!order || !order.lotCode || (order.status !== 'in_progress' && order.status !== 'on_hold')) {
     return problem(
       {
         code: 'order.not_found',
@@ -245,6 +302,14 @@ async function recordOutput(request: Request, culture: Culture, now: Date, insta
   return json(receipt, 201, culture);
 }
 
+const ROUTES: ReadonlyArray<{ path: RegExp; allow: string }> = [
+  { path: /^\/api\/plant$/, allow: 'GET' },
+  { path: /^\/api\/orders$/, allow: 'GET' },
+  { path: /^\/api\/lots$/, allow: 'GET' },
+  { path: /^\/api\/lots\/[^/]+$/, allow: 'GET' },
+  { path: /^\/api\/output$/, allow: 'POST' },
+];
+
 export async function handleApi(request: Request): Promise<Response> {
   const url = new URL(request.url, 'http://localhost');
   const path = url.pathname.replace(/\/+$/, '');
@@ -282,8 +347,10 @@ export async function handleApi(request: Request): Promise<Response> {
     return recordOutput(request, culture, now, path);
   }
 
-  return new Response(
-    JSON.stringify({ type: 'about:blank', title: 'Not Found', status: 404, detail: `No route for ${method} ${path}.`, instance: path }),
-    { status: 404, headers: { ...baseHeaders(culture), 'content-type': 'application/problem+json; charset=utf-8' } },
-  );
+  // A known address asked with the wrong method is 405 with the methods it does take, not 404.
+  const allowed = ROUTES.find((route) => route.path.test(path))?.allow;
+  if (allowed) {
+    return plainProblem(405, 'Method Not Allowed', `${path} takes ${allowed}, not ${method}.`, path, culture, { allow: allowed });
+  }
+  return plainProblem(404, 'Not Found', `No route for ${method} ${path}.`, path, culture);
 }
