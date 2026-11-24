@@ -1,0 +1,64 @@
+# Azure Pipelines definition for this sample.
+#
+# Status: written for the handoff and not yet run in Azure DevOps. The steps are the commands
+# that were run locally before every commit, in the same order.
+#
+# Pull requests: in Azure Repos a pull request does not start a YAML pipeline through a "pr:"
+# block (that key is for GitHub and Bitbucket). Attach this pipeline to the target branch as a
+# build validation policy instead: Project settings > Repositories > Policies > Build validation.
+# A pull request then cannot complete while a key is missing from English, a placeholder has
+# changed in a translation, or a test fails.
+
+trigger:
+  branches:
+    include:
+      - main
+      - release/*
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  CI: 'true'
+
+steps:
+  - task: NodeTool@0
+    displayName: Use Node 22
+    inputs:
+      versionSpec: '22.x'
+
+  - script: |
+      corepack enable
+      pnpm install --frozen-lockfile
+    displayName: Install
+
+  # Fails on a key the code uses that English does not have, a key English does not have,
+  # a changed placeholder, or a pseudo-locale that is out of date. Reports what would fall back.
+  - script: pnpm i18n:check
+    displayName: Translation files
+
+  # Includes the hard-coded text rule on every screen that has been enabled.
+  - script: pnpm lint
+    displayName: Lint
+
+  # A mistyped message key fails here.
+  - script: pnpm typecheck
+    displayName: Type check
+
+  - script: pnpm test
+    displayName: Unit and screen tests
+
+  - script: pnpm build
+    displayName: Build
+
+  - script: |
+      pnpm exec playwright install --with-deps chromium
+      pnpm test:e2e
+    displayName: Browser tests, once per language
+
+  # The release gate: nothing may ship in English by accident. It fails on purpose in this
+  # sample, where five Portuguese strings and one backend code are left untranslated to show
+  # the fallback.
+  - script: pnpm i18n:check --strict
+    displayName: Nothing falls back (release branches only)
+    condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'))
